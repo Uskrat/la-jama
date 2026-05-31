@@ -55,20 +55,32 @@
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr th:each="insumo, i : ${insumos}">
-                                <td th:text="${i.count}"></td>
-                                <td th:text="${insumo.nombre}"></td>
-                                <td th:text="${insumo.unidadMedida}"></td>
-                                <td th:text="${#numbers.formatDecimal(insumo.stockActual, 1, 2)}"></td>
-                                <td th:text="${insumo.stockMinimo}"></td>
-                                <td>
-                                    <form th:action="@{/insumos/eliminar/{id}(id=${insumo.id})}" method="post">
-                                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        </tbody>
+                            <tbody>
+        <tr th:each="insumo, i : ${insumos}">
+            <td th:text="${i.count}"></td>
+            <td><input type="text" class="form-control form-control-sm"
+                    th:id="'nombre_' + ${insumo.id}"
+                    th:value="${insumo.nombre}"/></td>
+            <td><input type="text" class="form-control form-control-sm"
+                    th:id="'unidad_' + ${insumo.id}"
+                    th:value="${insumo.unidadMedida}"/></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm"
+                    th:id="'stockActual_' + ${insumo.id}"
+                    th:value="${insumo.stockActual}"/></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm"
+                    th:id="'stockMinimo_' + ${insumo.id}"
+                    th:value="${insumo.stockMinimo}"/></td>
+            <td class="d-flex gap-1">
+                <button class="btn btn-sm btn-warning"
+                        th:onclick="'editarInsumo(' + ${insumo.id} + ')'">
+                    Guardar
+                </button>
+                <form th:action="@{/insumos/eliminar/{id}(id=${insumo.id})}" method="post">
+                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+    </tbody>
                     </table>
                 </div>
             </div>
@@ -148,6 +160,26 @@
             document.getElementById('formAsignar').action = '/insumos/producto/' + idProducto + '/agregar';
         }
     }
+</script>
+<script>
+async function editarInsumo(id) {
+    const nombre = document.getElementById('nombre_' + id).value;
+    const unidadMedida = document.getElementById('unidad_' + id).value;
+    const stockActual = document.getElementById('stockActual_' + id).value;
+    const stockMinimo = document.getElementById('stockMinimo_' + id).value;
+
+    const response = await fetch('/insumos/editar/' + id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, nombre, unidadMedida, stockActual, stockMinimo })
+    });
+
+    if (response.ok) {
+        alert('Insumo actualizado');
+    } else {
+        alert('Error al actualizar');
+    }
+}
 </script>
 </body>
 </html>

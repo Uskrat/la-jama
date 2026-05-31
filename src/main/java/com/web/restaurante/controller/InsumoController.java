@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -26,6 +27,13 @@ public class InsumoController {
         model.addAttribute("insumosProductos", insumoService.listarTodosLosInsumosProducto());
         return "insumos";
     }
+    @PostMapping("/editar/{id}")
+    @ResponseBody
+    public ResponseEntity<Void> editarInsumo(@PathVariable Long id, @RequestBody InsumoDTO dto) {
+    dto.setId(id);
+    insumoService.guardarInsumo(dto);
+    return ResponseEntity.ok().build();
+}
 
     @PostMapping("/guardar")
     public String guardarInsumo(@ModelAttribute InsumoDTO dto) {
