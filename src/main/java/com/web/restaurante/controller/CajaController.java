@@ -54,6 +54,14 @@ public class CajaController {
     @ResponseBody
     public ResponseEntity<?> guardarDelivery(@RequestBody Pedido pedido) {
         pedidoService.guardarPedido(pedido);
+
+        // El cajero ya aprobó el pedido al tomarlo manualmente
+        // tanto DELIVERY como LOCAL van directo a EN_COCINA
+        if (pedido.getId() != null) {
+            pedidoService.actualizarEstadoPedido(pedido.getId(),
+                com.web.restaurante.model.enums.EstadoPedido.EN_COCINA);
+        }
+
         return ResponseEntity.ok().build();
     }
 }

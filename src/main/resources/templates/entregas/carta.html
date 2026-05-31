@@ -547,7 +547,7 @@
                 <span th:if="${!#strings.containsIgnoreCase(cat.nombre, 'fría') and !#strings.containsIgnoreCase(cat.nombre, 'fria') and !#strings.containsIgnoreCase(cat.nombre, 'cevich') and !#strings.containsIgnoreCase(cat.nombre, 'causa') and !#strings.containsIgnoreCase(cat.nombre, 'caliente') and !#strings.containsIgnoreCase(cat.nombre, 'fondo') and !#strings.containsIgnoreCase(cat.nombre, 'lomo') and !#strings.containsIgnoreCase(cat.nombre, 'pollo')}"></span>
             </div>
             <h2 class="cat-nombre"
-                th:text="${#strings.containsIgnoreCase(cat.nombre, 'fría') or #strings.containsIgnoreCase(cat.nombre, 'fria') ? 'Entradas & Frescos' : (#strings.containsIgnoreCase(cat.nombre, 'caliente') ? 'Platos de Fondo' : cat.nombre)}">
+                th:text="${#strings.containsIgnoreCase(cat.nombre, 'fría') or #strings.containsIgnoreCase(cat.nombre, 'fria') ? 'Entradas  Frescos' : (#strings.containsIgnoreCase(cat.nombre, 'caliente') ? 'Platos de Fondo' : cat.nombre)}">
             </h2>
             <div class="cat-linea"></div>
         </div>

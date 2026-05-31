@@ -20,14 +20,28 @@
     <div th:replace="~{sidebar :: sidebar(activeUri='/admin/caja/delivery/nuevo')}"></div>
 
     <main class="main-content">
-        <div th:replace="~{sidebar :: logistica_header('Terminal Delivery')}"></div>
+        <div th:replace="~{sidebar :: logistica_header('Terminal Pedidos')}"></div>
 
         <div class="container-fluid px-4 mt-3">
             <div class="row g-4">
 
                 <div class="col-lg-7">
                     <div class="card border-0 shadow-sm p-4 mb-4 rounded-4 card-delivery">
-                        <h5 class="fw-bold mb-3 title-jama">
+                        <!-- SELECTOR TIPO PEDIDO -->
+                        <div class="d-flex gap-2 mb-4">
+                            <button id="btnDelivery" onclick="seleccionarTipo('DELIVERY')"
+                                class="btn fw-bold rounded-pill px-4"
+                                style="background:var(--lajama-brown);color:white;border:none;">
+                                <i class="bi bi-bicycle me-1"></i> Delivery
+                            </button>
+                            <button id="btnParaLlevar" onclick="seleccionarTipo('PARA_LLEVAR')"
+                                class="btn fw-bold rounded-pill px-4"
+                                style="background:#e9ecef;color:#333;border:none;">
+                                <i class="bi bi-bag me-1"></i> Para Llevar
+                            </button>
+                        </div>
+
+                        <h5 class="fw-bold mb-3 title-jama" id="tituloEntrega">
                             <i class="bi bi-geo-alt-fill me-2"></i> Datos de Entrega
                         </h5>
                         <div class="row">
@@ -36,7 +50,7 @@
                                 <input class="form-control input-jama" id="cliente_nombre"
                                        placeholder="Ej. José Mario" type="text">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3" id="bloqueDir">
                                 <label class="small fw-bold label-jama">Buscar Dirección en Chiclayo</label>
                                 <div class="mb-2" id="search-container"></div>
                                 <input class="form-control bg-light input-jama" id="inputDireccion"

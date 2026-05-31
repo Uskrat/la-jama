@@ -4,6 +4,7 @@
 let carrito = [];
 let mapaPreview;
 let marcadorPreview = null;
+let tipoPedidoCajero = 'DELIVERY';
 
 document.addEventListener('DOMContentLoaded', () => {
     initModuloEntrega();
@@ -147,12 +148,34 @@ function configurarBuscadorProductos() {
     }
 }
 
+function seleccionarTipo(tipo) {
+    tipoPedidoCajero = tipo;
+    const esDelivery = tipo === 'DELIVERY';
+
+    // Botones
+    document.getElementById('btnDelivery').style.background = esDelivery ? 'var(--lajama-brown)' : '#e9ecef';
+    document.getElementById('btnDelivery').style.color = esDelivery ? 'white' : '#333';
+    document.getElementById('btnParaLlevar').style.background = !esDelivery ? 'var(--lajama-brown)' : '#e9ecef';
+    document.getElementById('btnParaLlevar').style.color = !esDelivery ? 'white' : '#333';
+
+    // Mostrar u ocultar mapa y dirección
+    document.getElementById('bloqueDir').style.display = esDelivery ? 'block' : 'none';
+    document.getElementById('mapa-preview').style.display = esDelivery ? 'block' : 'none';
+
+    // Título
+    document.getElementById('tituloEntrega').innerHTML = esDelivery
+        ? '<i class="bi bi-geo-alt-fill me-2"></i> Datos de Entrega'
+        : '<i class="bi bi-bag me-2"></i> Datos del Cliente';
+}
+
 function confirmarPedido() {
     const lat = document.getElementById('lat').value;
     const lng = document.getElementById('lng').value;
     const cliente = document.getElementById('cliente_nombre').value.trim();
 
-    if (!lat || !cliente || carrito.length === 0) {
+    const esDelivery = tipoPedidoCajero === 'DELIVERY';
+
+    if (esDelivery && (!lat || !cliente || carrito.length === 0)) {
         Swal.fire({
             icon: 'warning',
             title: 'Datos Incompletos',
@@ -162,13 +185,25 @@ function confirmarPedido() {
         return;
     }
 
+    if (!esDelivery && (!cliente || carrito.length === 0)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Datos Incompletos',
+            text: 'Debes ingresar el nombre del cliente y añadir productos.',
+            confirmButtonColor: '#1B3A2C'
+        });
+        return;
+    }
+
     const data = {
         cliente: cliente,
-        direccion: document.getElementById('inputDireccion').value,
-        latitud: parseFloat(lat),
-        longitud: parseFloat(lng),
+        direccion: esDelivery
+            ? document.getElementById('inputDireccion').value
+            : 'Recojo en local',
+        latitud: esDelivery ? parseFloat(lat) : null,
+        longitud: esDelivery ? parseFloat(lng) : null,
         montoTotal: parseFloat(document.getElementById('label-total').innerText),
-        tipoPedido: 'DELIVERY',
+        tipoPedido: esDelivery ? 'DELIVERY' : 'LOCAL',
         listaDetalles: carrito.map(i => ({
             producto: { id: i.id },
             cantidad: i.cantidad,
@@ -183,8 +218,10 @@ function confirmarPedido() {
         body: JSON.stringify(data)
     }).then(res => {
         if (res.ok) {
-            Swal.fire('¡Éxito!', 'Orden enviada a despacho', 'success')
-                .then(() => window.location.href = '/admin/despacho');
+            const msg = esDelivery ? 'Orden enviada a despacho' : 'Orden enviada a cocina';
+            const redirect = esDelivery ? '/admin/despacho' : '/admin/caja';
+            Swal.fire('¡Éxito!', msg, 'success')
+                .then(() => window.location.href = redirect);
         }
     });
 }
