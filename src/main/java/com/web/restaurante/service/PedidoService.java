@@ -2,6 +2,7 @@ package com.web.restaurante.service;
 
 import com.web.restaurante.model.DetallePedido;
 import com.web.restaurante.model.Empleado;
+import com.web.restaurante.service.InsumoService;
 import com.web.restaurante.model.Pedido;
 import com.web.restaurante.model.enums.EstadoPedido;
 import com.web.restaurante.model.enums.TipoPedido;
@@ -23,6 +24,7 @@ public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
     private final EmpleadoRepository empleadoRepository;
+    private final InsumoService insumoService;
 
     private final double LAT_LOCAL = -6.787382;
     private final double LON_LOCAL = -79.842961;
@@ -162,12 +164,14 @@ public class PedidoService {
                 if (d.getProducto() != null && d.getProducto().getCategoria() != null) {
                     String catNombre = d.getProducto().getCategoria().getNombre().toUpperCase();
                     if ("fria".equalsIgnoreCase(tipoEstacion)
-                            && (catNombre.contains("FRI") || catNombre.contains("FRÍ"))) {
-                        d.setCocinado(true);
-                    }
-                    if ("caliente".equalsIgnoreCase(tipoEstacion) && catNombre.contains("CALIENTE")) {
-                        d.setCocinado(true);
-                    }
+        && (catNombre.contains("FRI") || catNombre.contains("FRÍ"))) {
+        d.setCocinado(true);
+        insumoService.descontarInsumosPorPedido(d.getProducto().getId(), d.getCantidad());
+        }
+        if ("caliente".equalsIgnoreCase(tipoEstacion) && catNombre.contains("CALIENTE")) {
+        d.setCocinado(true);
+        insumoService.descontarInsumosPorPedido(d.getProducto().getId(), d.getCantidad());
+        }
                 }
             }
         }
