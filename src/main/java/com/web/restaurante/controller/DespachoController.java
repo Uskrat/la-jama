@@ -3,8 +3,8 @@ package com.web.restaurante.controller;
 import com.web.restaurante.dto.PedidoMapaDTO;
 import com.web.restaurante.model.Empleado;
 import com.web.restaurante.model.Pedido;
-import com.web.restaurante.service.IEmpleadoService;
-import com.web.restaurante.service.IPedidoService;
+import com.web.restaurante.service.EmpleadoService;
+import com.web.restaurante.service.PedidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DespachoController {
 
-    private final IPedidoService pedidoService;
-    private final IEmpleadoService empleadoService;
+    private final PedidoService pedidoService;
+    private final EmpleadoService empleadoService;
 
     @GetMapping
     public String verPanelDespacho(Model model) {

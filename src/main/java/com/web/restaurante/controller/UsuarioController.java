@@ -1,8 +1,8 @@
 package com.web.restaurante.controller;
 
 import com.web.restaurante.model.Usuario;
-import com.web.restaurante.serviceImpl.PerfilServiceImpl;
-import com.web.restaurante.serviceImpl.UsuarioServiceImpl;
+import com.web.restaurante.service.PerfilService;
+import com.web.restaurante.service.UsuarioService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,8 +21,8 @@ import java.util.Objects;
 @Controller
 @RequestMapping("/usuarios")
 public class UsuarioController {
-    private final UsuarioServiceImpl usuarioService;
-    private final PerfilServiceImpl perfilService;
+    private final UsuarioService usuarioService;
+    private final PerfilService perfilService;
 
     @GetMapping
     public String mostrarPagina(Model model) {

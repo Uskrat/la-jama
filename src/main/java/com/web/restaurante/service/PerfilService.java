@@ -1,11 +1,10 @@
-package com.web.restaurante.serviceImpl;
+package com.web.restaurante.service;
 
 import com.web.restaurante.model.Opcion;
 import com.web.restaurante.model.Perfil;
 import com.web.restaurante.repository.OpcionRepository;
 import com.web.restaurante.repository.PerfilRepository;
 import com.web.restaurante.repository.UsuarioRepository;
-import com.web.restaurante.service.IPerfilService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,31 +14,31 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
-public class PerfilServiceImpl implements IPerfilService {
+public class PerfilService {
 
     private final PerfilRepository perfilRepository;
     private final OpcionRepository opcionRepository;
     private final UsuarioRepository usuarioRepository;
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Perfil> listar() {
         return perfilRepository.findAllByEstadoNot(2);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public Optional<Perfil> obtenerPorId(Long id) {
         return perfilRepository.findById(id);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public Optional<Perfil> encontrarPorNombre(String nombre) {
         return perfilRepository.findByNombreIgnoreCase(nombre);
     }
 
-    @Override
+    
     @Transactional
     public Perfil guardar(Perfil perfil) {
         if (perfil.getId() != null) {
@@ -60,7 +59,7 @@ public class PerfilServiceImpl implements IPerfilService {
         return perfilRepository.save(perfil);
     }
 
-    @Override
+    
     @Transactional
     public Perfil alternarEstado(Long id) {
         validarId(id);
@@ -72,7 +71,7 @@ public class PerfilServiceImpl implements IPerfilService {
         return perfilRepository.save(perfil);
     }
 
-    @Override
+    
     @Transactional
     public void eliminar(Long id) {
         validarId(id);
@@ -89,7 +88,7 @@ public class PerfilServiceImpl implements IPerfilService {
         perfilRepository.save(perfil);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Opcion> listarOpciones() {
         return opcionRepository.findAll();

@@ -1,10 +1,8 @@
 package com.web.restaurante.controller;
 
 import com.web.restaurante.model.Pedido;
-import com.web.restaurante.model.enums.EstadoPedido;
-import com.web.restaurante.model.enums.TipoPedido;
 import com.web.restaurante.repository.ProductoRepository;
-import com.web.restaurante.service.IPedidoService;
+import com.web.restaurante.service.PedidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -16,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CajaController {
 
-    private final IPedidoService pedidoService;
+    private final PedidoService pedidoService;
     private final ProductoRepository productoRepository;
 
     @GetMapping

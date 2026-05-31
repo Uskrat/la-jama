@@ -1,7 +1,7 @@
 package com.web.restaurante.controller;
 
 import com.web.restaurante.model.Perfil;
-import com.web.restaurante.serviceImpl.PerfilServiceImpl;
+import com.web.restaurante.service.PerfilService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/perfiles")
 public class PerfilController {
-    private final PerfilServiceImpl perfilService;
+    private final PerfilService perfilService;
 
     @GetMapping
     public String mostrarPagina(){

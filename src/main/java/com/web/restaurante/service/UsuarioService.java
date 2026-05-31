@@ -1,8 +1,7 @@
-package com.web.restaurante.serviceImpl;
+package com.web.restaurante.service;
 
 import com.web.restaurante.model.Usuario;
 import com.web.restaurante.repository.UsuarioRepository;
-import com.web.restaurante.service.IUsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,30 +12,30 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
-public class UsuarioServiceImpl implements IUsuarioService {
+public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Usuario> listar() {
         return usuarioRepository.findAllByEstadoNot(2);
     }
 
-    @Override
+    
     @Transactional (readOnly = true)
     public Optional<Usuario> obtenerPorId(Long id) {
         return usuarioRepository.findById(id);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public Optional<Usuario> encontrarPorUsuario(String usuario) {
         return usuarioRepository.findByUsuarioIgnoreCase(usuario);
     }
 
-    @Override
+    
     @Transactional
     public Usuario guardar(Usuario usuario) {
 
@@ -64,7 +63,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    @Override
+    
     @Transactional
     public Usuario alternarEstado(Long id) {
         validarId(id);
@@ -76,7 +75,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    @Override
+    
     @Transactional
     public void eliminar(Long id) {
         validarId(id);
@@ -88,13 +87,13 @@ public class UsuarioServiceImpl implements IUsuarioService {
         usuarioRepository.save(usuario);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public long contar() {
         return usuarioRepository.countByEstadoNot(2);
     }
 
-    @Override
+    
     public boolean verificarClave(String claveTextoPlano, String claveEncriptada) {
         return passwordEncoder.matches(claveTextoPlano, claveEncriptada);
     }

@@ -3,8 +3,8 @@ package com.web.restaurante.controller;
 import com.web.restaurante.model.Empleado;
 import com.web.restaurante.model.Opcion;
 import com.web.restaurante.model.Usuario;
-import com.web.restaurante.serviceImpl.EmpleadoServiceImpl;
-import com.web.restaurante.serviceImpl.UsuarioServiceImpl;
+import com.web.restaurante.service.EmpleadoService;
+import com.web.restaurante.service.UsuarioService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 @Controller
 public class LoginController {
 
-    private final UsuarioServiceImpl usuarioService;
-    private final EmpleadoServiceImpl empleadoService;
+    private final UsuarioService usuarioService;
+    private final EmpleadoService empleadoService;
 
     @GetMapping("/logout")
     public String logout(HttpSession session, RedirectAttributes redirectAttributes) {

@@ -1,11 +1,10 @@
-package com.web.restaurante.serviceImpl;
+package com.web.restaurante.service;
 
 import com.web.restaurante.model.*;
 import com.web.restaurante.model.enums.EstadoPedido;
 import com.web.restaurante.repository.CargoRepository;
 import com.web.restaurante.repository.EmpleadoRepository;
 import com.web.restaurante.repository.PedidoRepository;
-import com.web.restaurante.service.IEmpleadoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,19 +14,19 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
-public class EmpleadoServiceImpl implements IEmpleadoService {
+public class EmpleadoService {
 
     private final EmpleadoRepository empleadoRepository;
     private final CargoRepository cargoRepository;
     private final PedidoRepository pedidoRepository;
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Empleado> listarRepartidoresActivos() {
         return empleadoRepository.findByCargo_IdAndEstado(3L, 1);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Empleado> listar() {
         return empleadoRepository.listarNoEliminados();
@@ -38,19 +37,19 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         pedidoRepository.actualizarEstadoJPQL(id, EstadoPedido.PAGADO);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public Optional<Empleado> obtenerPorUsuario(Usuario usuario) {
         return empleadoRepository.findByUsuario(usuario);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public Optional<Empleado> obtenerPorId(Long id) {
         return empleadoRepository.findById(id);
     }
 
-    @Override
+    
     @Transactional
     public Empleado guardar(Empleado empleado) {
 
@@ -84,7 +83,7 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         return empleadoRepository.save(empleado);
     }
 
-    @Override
+    
     @Transactional
     public Empleado alternarEstado(Long id) {
         validarId(id);
@@ -97,7 +96,7 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         return empleado;
     }
 
-    @Override
+    
     @Transactional
     public void eliminar(Long id) {
         validarId(id);
@@ -107,13 +106,13 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         empleadoRepository.actualizarEstado(id, 2);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public long contar() {
         return empleadoRepository.contarActivos();
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Empleado> buscarPorTermino(String termino) {
         if (termino == null || termino.isBlank())
@@ -121,7 +120,7 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         return empleadoRepository.buscarPorTermino(termino.trim());
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Empleado> buscarPorTurno(String turno) {
         if (turno == null || turno.isBlank())
@@ -129,7 +128,7 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
         return empleadoRepository.buscarPorTurno(turno.trim().toUpperCase());
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Cargo> listarCargos() {
         return cargoRepository.listarActivos();

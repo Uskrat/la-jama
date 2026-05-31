@@ -4,9 +4,8 @@ import com.web.restaurante.model.DetallePedido;
 import com.web.restaurante.model.Empleado;
 import com.web.restaurante.model.Pedido;
 import com.web.restaurante.model.Usuario;
-import com.web.restaurante.model.enums.EstadoPedido;
+import com.web.restaurante.service.PedidoService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import com.web.restaurante.service.IPedidoService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -20,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CocinaController {
 
-    private final IPedidoService pedidoService;
+    private final PedidoService pedidoService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping("/{tipo}")

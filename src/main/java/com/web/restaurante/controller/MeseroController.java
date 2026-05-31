@@ -8,7 +8,7 @@ import com.web.restaurante.model.enums.EstadoPedido;
 import com.web.restaurante.repository.MesaRepository;
 import com.web.restaurante.repository.PedidoRepository;
 import com.web.restaurante.repository.ProductoRepository;
-import com.web.restaurante.service.IPedidoService;
+import com.web.restaurante.service.PedidoService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 public class MeseroController {
 
     private final ProductoRepository productoRepository;
-    private final IPedidoService pedidoService;
+    private final PedidoService pedidoService;
     private final MesaRepository mesaRepository;
     private final PedidoRepository pedidoRepository;
 

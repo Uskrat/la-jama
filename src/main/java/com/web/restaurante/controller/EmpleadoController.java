@@ -1,8 +1,8 @@
 package com.web.restaurante.controller;
 
 import com.web.restaurante.model.Empleado;
-import com.web.restaurante.service.IUsuarioService;
-import com.web.restaurante.serviceImpl.EmpleadoServiceImpl;
+import com.web.restaurante.service.EmpleadoService;
+import com.web.restaurante.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +18,8 @@ import java.util.Map;
 @RequestMapping("/empleados")
 public class EmpleadoController {
 
-    private final EmpleadoServiceImpl empleadoService;
-    private final IUsuarioService usuarioService;
+    private final EmpleadoService empleadoService;
+    private final UsuarioService usuarioService;
 
     @GetMapping
     public String mostrarPagina() {

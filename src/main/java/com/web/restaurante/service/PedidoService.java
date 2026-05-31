@@ -1,4 +1,4 @@
-package com.web.restaurante.serviceImpl;
+package com.web.restaurante.service;
 
 import com.web.restaurante.model.DetallePedido;
 import com.web.restaurante.model.Empleado;
@@ -7,7 +7,6 @@ import com.web.restaurante.model.enums.EstadoPedido;
 import com.web.restaurante.model.enums.TipoPedido;
 import com.web.restaurante.repository.EmpleadoRepository;
 import com.web.restaurante.repository.PedidoRepository;
-import com.web.restaurante.service.IPedidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PedidoServiceImpl implements IPedidoService {
+public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
     private final EmpleadoRepository empleadoRepository;
@@ -28,19 +27,19 @@ public class PedidoServiceImpl implements IPedidoService {
     private final double LAT_LOCAL = -6.787382;
     private final double LON_LOCAL = -79.842961;
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPedidosFrios() {
         return pedidoRepository.buscarPedidosPorCocina("FRI");
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPedidosCalientes() {
         return pedidoRepository.buscarPedidosPorCocina("CALIENTE");
     }
 
-    @Override
+    
     @Transactional
     public void actualizarEstadoPedido(Long id, EstadoPedido nuevoEstado) {
         Pedido pedido = pedidoRepository.findById(id)
@@ -51,7 +50,7 @@ public class PedidoServiceImpl implements IPedidoService {
         System.out.println("Pedido " + id + " actualizado a: " + nuevoEstado);
     }
 
-    @Override
+    
     @Transactional
     public Pedido guardar(Pedido pedido) {
         if (pedido.getId() == null) {
@@ -60,13 +59,13 @@ public class PedidoServiceImpl implements IPedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPreparados() {
         return pedidoRepository.findByEstado(EstadoPedido.PREPARADO);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPreparadosParaDespacho() {
         return pedidoRepository.findByEstado(EstadoPedido.PREPARADO)
@@ -75,7 +74,7 @@ public class PedidoServiceImpl implements IPedidoService {
                 .collect(Collectors.toList());
     }
 
-    @Override
+    
     @Transactional
     public void guardarPedido(Pedido pedido) {
         if (pedido.getId() == null) {
@@ -97,7 +96,7 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     public List<Pedido> optimizarTrayectoBurbuja(List<Pedido> pedidos) {
         int n = pedidos.size();
         for (int i = 0; i < n - 1; i++) {
@@ -120,7 +119,7 @@ public class PedidoServiceImpl implements IPedidoService {
                 Math.pow(p.getLongitud() - LON_LOCAL, 2));
     }
 
-    @Override
+    
     public List<List<Pedido>> generarSugerenciasDeRuta() {
         List<Pedido> preparados = listarPreparados();
 
@@ -136,7 +135,7 @@ public class PedidoServiceImpl implements IPedidoService {
         return grupos;
     }
 
-    @Override
+    
     @Transactional
     public void asignarRutaARepartidor(List<Long> pedidosIds, Long empleadoId) {
         Empleado repartidor = empleadoRepository.findById(empleadoId)
@@ -152,7 +151,7 @@ public class PedidoServiceImpl implements IPedidoService {
         }
     }
 
-    @Override
+    
     @Transactional
     public void completarEstacion(Long pedidoId, String tipoEstacion) {
         Pedido p = pedidoRepository.findById(pedidoId)
@@ -196,19 +195,19 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(p);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPedidosPorCobrar() {
         return pedidoRepository.listarPedidosPorCobrar();
     }
 
-    @Override
+    
     @Transactional
     public void cobrarPedido(Long id) {
         pedidoRepository.actualizarEstadoJPQL(id, EstadoPedido.PAGADO);
     }
 
-    @Override
+    
     @Transactional
     public void asignarRepartidor(Long pedidoId, Empleado repartidor) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -218,7 +217,7 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     @Transactional
     public void iniciarRuta(Long pedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -228,7 +227,7 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     @Transactional
     public void marcarComoEntregado(Long pedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -238,30 +237,30 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPedidosPorRepartidor(Long idEmpleado) {
         return pedidoRepository.buscarPedidosActivosPorRepartidor(idEmpleado);
     }
 
-    @Override
+    
     public Pedido obtenerPorId(Long id) {
         return pedidoRepository.findById(id).orElse(null);
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarDeliveryPendientesConCoordenadas() {
         return pedidoRepository.findDeliveryPendientesConCoordenadas();
     }
 
-    @Override
+    
     @Transactional(readOnly = true)
     public List<Pedido> listarPendientesDeCarta() {
         return pedidoRepository.findPedidosPendientesDeCarta();
     }
 
-    @Override
+    
     @Transactional
     public void aprobarPedidoACocina(Long pedidoId) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -270,7 +269,7 @@ public class PedidoServiceImpl implements IPedidoService {
         pedidoRepository.save(pedido);
     }
 
-    @Override
+    
     public List<DetallePedido> obtenerDetallesPorTipo(Long pedidoId, String tipoCocina) {
         Pedido pedido = pedidoRepository.findById(pedidoId).orElse(new Pedido());
         return pedido.getListaDetalles().stream()
