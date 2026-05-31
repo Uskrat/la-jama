@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Insumos</title>
+    <th:block th:replace="~{links :: headLinks}"></th:block>
+</head>
+<body class="bg-light">
+<div class="wrapper">
+    <div th:replace="~{sidebar :: sidebar(activeUri='/insumos')}"></div>
+
+    <main id="main-content" class="main-content">
+        <div th:replace="~{sidebar :: logistica_header('Gestión de Insumos')}"></div>
+
+        <div class="container-fluid p-4">
+
+            <!-- Formulario agregar insumo -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Agregar Insumo</h5>
+                    <form th:action="@{/insumos/guardar}" method="post" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" name="nombre" class="form-control" placeholder="Nombre del insumo" required/>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" name="unidadMedida" class="form-control" placeholder="Unidad (kg, lt, und)"/>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" step="0.01" name="stockActual" class="form-control" placeholder="Stock actual"/>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" step="0.01" name="stockMinimo" class="form-control" placeholder="Stock mínimo"/>
+                        </div>
+                        <input type="hidden" name="estado" value="1"/>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Agregar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tabla de insumos -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Lista de Insumos</h5>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nombre</th>
+                                <th>Unidad</th>
+                                <th>Stock Actual</th>
+                                <th>Stock Mínimo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="insumo, i : ${insumos}">
+                                <td th:text="${i.count}"></td>
+                                <td th:text="${insumo.nombre}"></td>
+                                <td th:text="${insumo.unidadMedida}"></td>
+                                <td th:text="${insumo.stockActual}"></td>
+                                <td th:text="${insumo.stockMinimo}"></td>
+                                <td>
+                                    <form th:action="@{/insumos/eliminar/{id}(id=${insumo.id})}" method="post">
+                                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<th:block th:replace="~{links :: scriptLinks}"></th:block>
+</body>
+</html>
