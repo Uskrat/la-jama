@@ -47,6 +47,13 @@ public class InsumoService {
                 .collect(Collectors.toList());
     }
 
+    public List<InsumoProductoDTO> listarTodosLosInsumosProducto() {
+        return insumoProductoRepository.findAll()
+                .stream()
+                .map(insumoMapper::toDTODetalle)
+                .collect(Collectors.toList());
+    }
+
     public InsumoProductoDTO agregarInsumoAProducto(Long idProducto, Long idInsumo, Double cantidad) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));

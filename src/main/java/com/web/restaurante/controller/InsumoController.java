@@ -2,6 +2,7 @@ package com.web.restaurante.controller;
 
 import com.web.restaurante.dto.InsumoDTO;
 import com.web.restaurante.dto.InsumoProductoDTO;
+import com.web.restaurante.repository.ProductoRepository;
 import com.web.restaurante.service.InsumoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -16,11 +17,13 @@ import java.util.List;
 public class InsumoController {
 
     private final InsumoService insumoService;
+    private final ProductoRepository productoRepository;
 
     @GetMapping
     public String listarInsumos(Model model) {
-        List<InsumoDTO> insumos = insumoService.listarInsumos();
-        model.addAttribute("insumos", insumos);
+        model.addAttribute("insumos", insumoService.listarInsumos());
+        model.addAttribute("productos", productoRepository.findAll());
+        model.addAttribute("insumosProductos", insumoService.listarTodosLosInsumosProducto());
         return "insumos";
     }
 
@@ -44,8 +47,8 @@ public class InsumoController {
 
     @PostMapping("/producto/{idProducto}/agregar")
     public String agregarInsumoAProducto(@PathVariable Long idProducto,
-                                          @RequestParam Long idInsumo,
-                                          @RequestParam Double cantidad) {
+                                         @RequestParam Long idInsumo,
+                                         @RequestParam Double cantidad) {
         insumoService.agregarInsumoAProducto(idProducto, idInsumo, cantidad);
         return "redirect:/insumos";
     }
