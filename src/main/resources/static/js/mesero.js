@@ -1,6 +1,14 @@
 let carrito = [];
 let productoTemporal = null;
 let insumosProductoActual = [];
+let bsModalInsumos = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const modalEl = document.getElementById('modalInsumos');
+    if (modalEl) {
+        bsModalInsumos = new bootstrap.Modal(modalEl);
+    }
+});
 
 async function abrirModalInsumos(elemento) {
     const id = elemento.getAttribute('data-id');
@@ -10,39 +18,42 @@ async function abrirModalInsumos(elemento) {
     productoTemporal = { id, nombre, precio };
 
     document.getElementById('modalNombrePlato').innerText = nombre;
-    document.getElementById('listaInsumosModal').innerHTML = '<p class="text-muted small">Cargando insumos...</p>';
-    document.getElementById('modalInsumos').classList.add('show');
+    document.getElementById('listaInsumosModal').innerHTML = '<div class="text-center py-2"><span class="spinner-border spinner-border-sm text-primary"></span></div>';
+
+    if (bsModalInsumos) bsModalInsumos.show();
 
     try {
         const res = await fetch('/insumos/producto/' + id);
         insumosProductoActual = await res.json();
 
         if (insumosProductoActual.length === 0) {
-            document.getElementById('listaInsumosModal').innerHTML = '<p class="text-muted small">Este plato no tiene insumos registrados.</p>';
+            // Si no tiene insumos modificables, entra directo al carrito sin hacer perder tiempo al mesero
+            if (bsModalInsumos) bsModalInsumos.hide();
+            agregarAlCarrito(id, nombre, precio, [], []);
         } else {
             let html = '';
             insumosProductoActual.forEach(ins => {
                 html += `
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" 
-                               id="ins_${ins.idInsumo}" 
-                               value="${ins.idInsumo}" 
+                        <input class="form-check-input" type="checkbox"
+                               id="ins_${ins.idInsumo}"
+                               value="${ins.idInsumo}"
                                data-nombre="${ins.nombreInsumo}"
                                checked>
-                        <label class="form-check-label" for="ins_${ins.idInsumo}">
-                            ${ins.nombreInsumo} (${ins.cantidadUsada} ${ins.unidadMedida})
+                        <label class="form-check-label small cursor-pointer" for="ins_${ins.idInsumo}">
+                            ${ins.nombreInsumo} <span class="text-muted">(${ins.cantidadUsada} ${ins.unidadMedida})</span>
                         </label>
                     </div>`;
             });
             document.getElementById('listaInsumosModal').innerHTML = html;
         }
     } catch (e) {
-        document.getElementById('listaInsumosModal').innerHTML = '<p class="text-muted small">No se pudieron cargar los insumos.</p>';
+        document.getElementById('listaInsumosModal').innerHTML = '<p class="text-danger small mb-0">No se pudieron cargar los insumos.</p>';
     }
 }
 
 function cerrarModal() {
-    document.getElementById('modalInsumos').classList.remove('show');
+    if (bsModalInsumos) bsModalInsumos.hide();
     productoTemporal = null;
     insumosProductoActual = [];
 }
@@ -50,35 +61,35 @@ function cerrarModal() {
 function confirmarAgregarAlCarrito() {
     if (!productoTemporal) return;
 
-    // Insumos que el cliente SÍ quiere (los que quedaron marcados)
-    const insumosSeleccionados = [];
+    const idsSinDescontar = [];
+    const nombresSinDescontar = [];
+
     insumosProductoActual.forEach(ins => {
         const checkbox = document.getElementById('ins_' + ins.idInsumo);
-        if (checkbox && checkbox.checked) {
-            insumosSeleccionados.push(ins.idInsumo);
+        if (checkbox && !checkbox.checked) {
+            idsSinDescontar.push(ins.idInsumo);
+            nombresSinDescontar.push(ins.nombreInsumo); // Capturamos el nombre para la UX visual
         }
     });
-
-    // Insumos que el cliente NO quiere (desmarcados)
-    const insumosSinDescontar = insumosProductoActual
-        .filter(ins => {
-            const cb = document.getElementById('ins_' + ins.idInsumo);
-            return cb && !cb.checked;
-        })
-        .map(ins => ins.idInsumo);
 
     agregarAlCarrito(
         productoTemporal.id,
         productoTemporal.nombre,
         productoTemporal.precio,
-        insumosSinDescontar
+        idsSinDescontar,
+        nombresSinDescontar
     );
 
     cerrarModal();
 }
 
-function agregarAlCarrito(id, nombre, precio, insumosSinDescontar = []) {
-    const existe = carrito.find(item => item.productoId === id);
+function agregarAlCarrito(id, nombre, precio, idsSin, nombresSin) {
+    // CORRECCIÓN: Para agrupar, ahora evaluamos que el producto coincida Y QUE TENGA LOS MISMOS INSUMOS RETIRADOS
+    const existe = carrito.find(item =>
+        item.productoId === id &&
+        JSON.stringify(item.insumosSinDescontar.sort()) === JSON.stringify(idsSin.sort())
+    );
+
     if (existe) {
         existe.cantidad++;
         existe.subtotal = existe.cantidad * precio;
@@ -89,7 +100,8 @@ function agregarAlCarrito(id, nombre, precio, insumosSinDescontar = []) {
             precio,
             cantidad: 1,
             subtotal: precio,
-            insumosSinDescontar
+            insumosSinDescontar: idsSin,
+            nombresSinDescontar: nombresSin // Guardamos los nombres para renderizar en el carrito
         });
     }
     renderizarCarrito();
@@ -103,7 +115,7 @@ function renderizarCarrito() {
         container.innerHTML = `
             <div class="text-center py-5 opacity-50">
                 <i class="bi bi-cart-x" style="font-size: 3rem;"></i>
-                <p class="mt-2">Comanda vacía</p>
+                <p class="mt-2 mb-0">Comanda vacía</p>
             </div>`;
         document.getElementById('total-monto').innerText = "0.00";
         return;
@@ -112,11 +124,14 @@ function renderizarCarrito() {
     let html = '';
     carrito.forEach((item, index) => {
         total += item.subtotal;
-        const sinEsto = item.insumosSinDescontar && item.insumosSinDescontar.length > 0
-            ? `<small class="text-danger d-block">Sin: ${item.insumosSinDescontar.join(', ')}</small>`
+
+        // CORRECCIÓN VISUAL: Ahora pinta los nombres de los ingredientes ("Sin: Cebolla") en vez de IDs numéricos
+        const sinEsto = item.nombresSinDescontar && item.nombresSinDescontar.length > 0
+            ? `<small class="text-danger d-block fw-bold" style="font-size:0.75rem;"><i class="bi bi-dash-circle-fill me-1"></i>Sin: ${item.nombresSinDescontar.join(', ')}</small>`
             : '';
+
         html += `
-            <div class="cart-item-card shadow-sm border-0">
+            <div class="cart-item-card shadow-sm border-0 animate__animated animate__fadeIn">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="d-block fw-bold text-dark">${item.nombre}</span>
@@ -125,7 +140,7 @@ function renderizarCarrito() {
                     </div>
                     <div class="text-end">
                         <span class="d-block fw-bold text-primary">S/ ${item.subtotal.toFixed(2)}</span>
-                        <button class="btn btn-sm text-danger p-0" onclick="eliminarItem(${index})">
+                        <button class="btn btn-sm text-danger p-0 mt-1" onclick="eliminarItem(${index})">
                            <i class="bi bi-trash3"></i>
                         </button>
                     </div>
@@ -149,45 +164,65 @@ function filtrarProductos() {
     });
 }
 
-async function enviarPedido() {
+function enviarPedido() {
     const urlParams = new URLSearchParams(window.location.search);
     const mesaId = urlParams.get('mesaId');
     const pedidoId = urlParams.get('pedidoId');
 
     if (carrito.length === 0) {
-        alert("Agrega al menos un producto");
+        AppUtils.showNotification("⚠️ Agrega al menos un producto a la comanda", "warning");
         return;
     }
 
-    const pedido = {
-        id: pedidoId ? parseInt(pedidoId) : null,
-        cliente: document.getElementById('cliente').value || "Mesa " + mesaId,
-        direccion: document.getElementById('direccion').value,
-        listaDetalles: carrito.map(item => ({
-            producto: { id: parseInt(item.productoId) },
-            cantidad: item.cantidad,
-            precioUnitario: item.precio,
-            subtotal: item.subtotal,
-            insumosSinDescontar: item.insumosSinDescontar || []
-        }))
-    };
+    AppUtils.showConfirmationDialog({
+        title: '¿Enviar Comanda a Cocina?',
+        text: `Se mandarán las órdenes activas para la Mesa #${mesaId || 'Salón'}.`,
+        icon: 'question',
+        confirmButtonColor: '#1B3A2C',
+        confirmButtonText: 'Sí, mandar a cocina'
+    }, async function() {
 
-    try {
-        const response = await fetch('/admin/mesero/guardar' + (mesaId ? '?mesaId=' + mesaId : ''), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(pedido)
-        });
+        AppUtils.showLoading(true); // Bloqueamos la interfaz para evitar comandas duplicadas
 
-        const resultadoTexto = await response.text();
-        if (resultadoTexto === "OK") {
-            alert("¡Orden enviada a cocina!");
-            window.location.href = '/admin/mesas';
-        } else {
-            alert("Error al procesar el pedido: " + resultadoTexto);
+        const pedido = {
+            id: pedidoId ? parseInt(pedidoId) : null,
+            cliente: document.getElementById('cliente').value || "Mesa " + mesaId,
+            direccion: document.getElementById('direccion').value,
+            listaDetalles: carrito.map(item => ({
+                producto: { id: parseInt(item.productoId) },
+                cantidad: item.cantidad,
+                precioUnitario: item.precio,
+                subtotal: item.subtotal,
+                insumosSinDescontar: item.insumosSinDescontar || []
+            }))
+        };
+
+        try {
+            const response = await fetch('/admin/mesero/guardar' + (mesaId ? '?mesaId=' + mesaId : ''), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pedido)
+            });
+
+            const resultadoTexto = await response.text();
+            AppUtils.showLoading(false);
+
+            if (resultadoTexto === "OK") {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Comanda Enviada!',
+                    text: 'La orden ha sido distribuida a las estaciones de cocina de La Jama.',
+                    confirmButtonColor: '#1B3A2C'
+                }).then(() => {
+                    window.location.href = '/admin/mesas';
+                });
+            } else {
+                AppUtils.showNotification("Error al procesar el pedido: " + resultadoTexto, "error");
+            }
+        } catch (error) {
+            AppUtils.showLoading(false);
+            console.error("Error:", error);
+            AppUtils.showNotification("❌ Fallo de conexión con el servidor", "error");
         }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Fallo de conexión");
-    }
+    });
 }
