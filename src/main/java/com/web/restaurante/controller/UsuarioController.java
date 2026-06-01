@@ -120,7 +120,7 @@ public class UsuarioController {
         try {
             UsuarioDTO guardado = usuarioService.guardarDTO(dto);
             return ResponseUtil.ok(
-                    guardado.id() != null ?
+                    dto.id() != null ?
                     "Usuario actualizado correctamente" :
                     "Usuario guardado correctamente",
                     guardado
@@ -150,6 +150,21 @@ public class UsuarioController {
         }
     }
 
+    @GetMapping("/api/v2/obtener/{id}")
+    @ResponseBody
+    public ResponseEntity<?> obtenerUsuarioDTO(@PathVariable Long id) {
+        try {
+            return ResponseUtil.ok(
+                    "Usuario obtenido correctamente",
+                    usuarioService.obtenerDTOPorId(id)
+            );
+        } catch (Exception e) {
+            return ResponseUtil.error(
+                    "Error interno del servidor: " + e.getMessage()
+            );
+        }
+    }
+
     @PostMapping("/api/cambiar-estado/{id}")
     @ResponseBody
     public ResponseEntity<?> cambiarEstadoUsuarioAjax(@PathVariable Long id, HttpSession session) {
@@ -176,6 +191,27 @@ public class UsuarioController {
             response.put("success", false);
             response.put("message", "Error al cambiar estado: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @PostMapping("/api/v2/cambiar-estado/{id}")
+    @ResponseBody
+    public ResponseEntity<?> cambiarEstadoUsuarioDTOAjax(@PathVariable Long id, HttpSession session) {
+        try {
+            UsuarioDTO usuarioLogueado = (UsuarioDTO) session.getAttribute("usuarioLogueadoDTO");
+            if (Objects.equals(usuarioLogueado.id(), id)) {
+                return ResponseUtil.forbidden(
+                        "Operación no permitida: No puedes cambiar de estado tu propia cuenta."
+                );
+            }
+            UsuarioDTO usuario = usuarioService.alternarEstadoDTO(id);
+            if (usuario != null) {
+                return ResponseUtil.ok("Estado del usuario actualizado correctamente");
+            } else {
+                return ResponseUtil.notFound("Usuario no encontrado o la operación no pudo realizarse");
+            }
+        } catch (Exception e) {
+            return ResponseUtil.error("Error al cambiar estado: " + e.getMessage());
         }
     }
 

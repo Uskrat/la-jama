@@ -22,8 +22,17 @@ public final class ResponseUtil {
         return ResponseEntity.badRequest().body(new ApiResponseDTO<>(false, msg, null));
     }
 
+
     public static <T> ResponseEntity<ApiResponseDTO<T>> error(String msg) {
         return ResponseEntity.internalServerError().body(new ApiResponseDTO<>(false, msg, null));
+    }
+
+    public static <T> ResponseEntity<ApiResponseDTO<T>> forbidden(String msg, T data ) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponseDTO<>(false, msg, data));
+    }
+
+    public static <T> ResponseEntity<ApiResponseDTO<T>> forbidden(String msg) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponseDTO<>(false, msg, null));
     }
 
     public static <T> ResponseEntity<ApiResponseDTO<T>> notFound(String msg) {
