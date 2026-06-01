@@ -1,8 +1,11 @@
 package com.web.restaurante.controller;
 
+import com.web.restaurante.dto.usuario.UsuarioDTO;
+import com.web.restaurante.dto.usuario.UsuarioSaveDTO;
 import com.web.restaurante.model.Usuario;
 import com.web.restaurante.service.PerfilService;
 import com.web.restaurante.service.UsuarioService;
+import com.web.restaurante.util.ResponseUtil;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,6 +45,15 @@ public class UsuarioController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/api/v2/listar")
+    @ResponseBody
+    public ResponseEntity<?> listarUsuariosApiDTO() {
+        return ResponseUtil.ok(
+                "Usuarios obtenidos correctamente",
+                usuarioService.listarDTO()
+        );
+    }
+
     @GetMapping("/api/perfiles")
     @ResponseBody
     public ResponseEntity<?> listarPerfilesApi() {
@@ -49,6 +61,15 @@ public class UsuarioController {
         response.put("success", true);
         response.put("data", perfilService.listar());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/api/v2/perfiles")
+    @ResponseBody
+    public ResponseEntity<?> listarPerfilesApiDTO() {
+        return ResponseUtil.ok(
+                "Perfiles obtenidos correctamente",
+                perfilService.listarDTO()
+        );
     }
 
     @PostMapping("/api/guardar")
@@ -76,6 +97,38 @@ public class UsuarioController {
             response.put("success", false);
             response.put("message", "Error interno del servidor: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @PostMapping("/api/v2/guardar")
+    @ResponseBody
+    public ResponseEntity<?> guardarUsuarioDTOAjax(@RequestBody UsuarioSaveDTO dto, BindingResult bindingResult) {
+        Map<String, Object> response = new HashMap<>();
+
+        if (bindingResult.hasErrors()) {
+            return ResponseUtil.bad(
+                    "Datos inválidos",
+                    String.join("\n",
+                            bindingResult.getFieldErrors()
+                                    .stream()
+                                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                                    .toList()
+                    )
+            );
+        }
+
+        try {
+            UsuarioDTO guardado = usuarioService.guardarDTO(dto);
+            return ResponseUtil.ok(
+                    guardado.id() != null ?
+                    "Usuario actualizado correctamente" :
+                    "Usuario guardado correctamente",
+                    guardado
+            );
+        } catch (Exception e) {
+            return ResponseUtil.error(
+                    "Error interno del servidor: " + e.getMessage()
+            );
         }
     }
 

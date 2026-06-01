@@ -1,8 +1,12 @@
 package com.web.restaurante.service;
 
 import com.web.restaurante.dto.usuario.UsuarioDTO;
+import com.web.restaurante.dto.usuario.UsuarioSaveDTO;
+import com.web.restaurante.exception.ResourceNotFoundException;
 import com.web.restaurante.mapper.UsuarioMapper;
+import com.web.restaurante.model.Perfil;
 import com.web.restaurante.model.Usuario;
+import com.web.restaurante.repository.PerfilRepository;
 import com.web.restaurante.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,6 +24,7 @@ public class UsuarioService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final UsuarioMapper usuarioMapper;
 
+    private final PerfilRepository perfilRepository;
     
     @Transactional(readOnly = true)
     public List<Usuario> listar() {
@@ -27,7 +32,7 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public List<UsuarioDTO> listarActivos() {
+    public List<UsuarioDTO> listarDTO() {
         return usuarioRepository.findAllByEstadoNot(2)
                 .stream().map(usuarioMapper::toDTO).toList();
     }
@@ -37,12 +42,26 @@ public class UsuarioService {
         return usuarioRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioDTO obtenerDTOPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .map(usuarioMapper::toDTO)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado"));
+    }
     
     @Transactional(readOnly = true)
     public Optional<Usuario> encontrarPorUsuario(String usuario) {
         return usuarioRepository.findByUsuarioIgnoreCase(usuario);
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioDTO encontrarDTOPorUsuario(String usuario) {
+        return usuarioRepository.findByUsuario(usuario)
+                .map(usuarioMapper::toDTO)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado"));
+    }
     
     @Transactional
     public Usuario guardar(Usuario usuario) {
@@ -71,6 +90,42 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
+    @Transactional
+    public UsuarioDTO guardarDTO(UsuarioSaveDTO dto) {
+        if (dto.id() != null) {
+            Usuario existente = usuarioRepository.findById(dto.id())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado para actualizar"));
+
+            validarDuplicadosDTO(dto);
+
+            Perfil perfil = perfilRepository.findById(dto.idPerfil())
+                    .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado"));
+
+            existente.setUsuario(dto.usuario());
+            existente.setCorreo(dto.correo());
+            existente.setPerfil(perfil);
+
+            if (!esClaveVacia(dto.clave())) {
+                existente.setClave(passwordEncoder.encode(dto.clave().trim()));
+            }
+
+            return usuarioMapper.toDTO(usuarioRepository.save(existente));
+        }
+
+        validarDuplicadosDTO(dto);
+        validarClave(dto.clave());
+        Perfil perfil = perfilRepository.findById(dto.idPerfil())
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado"));
+
+        Usuario nuevo = Usuario.builder()
+                .usuario(dto.usuario())
+                .correo(dto.correo())
+                .clave(passwordEncoder.encode(dto.clave().trim()))
+                .perfil(perfil)
+                .build();
+
+        return usuarioMapper.toDTO(usuarioRepository.save(nuevo));
+    }
     
     @Transactional
     public Usuario alternarEstado(Long id) {
@@ -83,6 +138,16 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
+    @Transactional
+    public UsuarioDTO alternarEstadoDTO(Long id) {
+        validarId(id);
+
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        usuario.setEstado(usuario.getEstado() == 1 ? 0 : 1);
+        return usuarioMapper.toDTO(usuarioRepository.save(usuario));
+    }
     
     @Transactional
     public void eliminar(Long id) {
@@ -126,6 +191,16 @@ public class UsuarioService {
         }
 
         if (esCorreoDuplicado(usuario.getCorreo(), usuario.getId())) {
+            throw new IllegalArgumentException("El correo ya está en uso por otra cuenta activa.");
+        }
+    }
+
+    private void validarDuplicadosDTO(UsuarioSaveDTO dto) {
+        if (esUsuarioDuplicado(dto.usuario(), dto.id())) {
+            throw new IllegalArgumentException("Este usuario ya está en uso por otra cuenta activa.");
+        }
+
+        if (esCorreoDuplicado(dto.correo(), dto.id())) {
             throw new IllegalArgumentException("El correo ya está en uso por otra cuenta activa.");
         }
     }

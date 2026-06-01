@@ -1,5 +1,7 @@
 package com.web.restaurante.service;
 
+import com.web.restaurante.dto.perfil.PerfilDTO;
+import com.web.restaurante.mapper.PerfilMapper;
 import com.web.restaurante.model.Opcion;
 import com.web.restaurante.model.Perfil;
 import com.web.restaurante.repository.OpcionRepository;
@@ -17,6 +19,7 @@ import java.util.Optional;
 public class PerfilService {
 
     private final PerfilRepository perfilRepository;
+    private final PerfilMapper perfilMapper;
     private final OpcionRepository opcionRepository;
     private final UsuarioRepository usuarioRepository;
 
@@ -26,6 +29,11 @@ public class PerfilService {
         return perfilRepository.findAllByEstadoNot(2);
     }
 
+    @Transactional(readOnly = true)
+    public List<PerfilDTO> listarDTO() {
+        return perfilRepository.findAllByEstadoNot(2)
+                .stream().map(perfilMapper::toDTO).toList();
+    }
     
     @Transactional(readOnly = true)
     public Optional<Perfil> obtenerPorId(Long id) {
