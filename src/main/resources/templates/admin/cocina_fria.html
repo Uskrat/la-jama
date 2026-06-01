@@ -38,10 +38,17 @@
                     </div>
                 </div>
 
+                <!-- Reemplaza únicamente el bloque 'card-body' dentro del bucle de tu cocina fría por este: -->
                 <div class="card-body">
                     <h5 class="cliente-nombre">
                         Mesa: <span th:text="${p.numeroMesa != null ? p.numeroMesa : p.cliente}"></span>
                     </h5>
+
+                    <div th:if="${p.direccion != null and !p.direccion.isEmpty()}">
+                        <small style="color: #dc3545; font-weight: bold; display: block; margin-bottom: 8px; font-size: 0.85rem;">
+                            [[${p.direccion}]]
+                        </small>
+                    </div>
 
                     <div class="items-lista">
                         <div class="item-plato" th:each="d : ${p.getListaDetalles()}"
@@ -51,7 +58,6 @@
                                 <span class="item-cantidad" th:text="${d.cantidad}">1</span>
                                 <span class="item-nombre" th:text="${d.producto.nombre}">Plato Frío</span>
                             </div>
-
                         </div>
                     </div>
                 </div>

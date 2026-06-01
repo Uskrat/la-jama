@@ -42,6 +42,13 @@
                     <h5 class="cliente-nombre">
                         Mesa: <span th:text="${p.numeroMesa != null ? p.numeroMesa : p.cliente}"></span>
                     </h5>
+
+                    <div th:if="${p.direccion != null and !p.direccion.isEmpty()}">
+                        <small style="color: #dc3545; font-weight: bold; display: block; margin-bottom: 8px; font-size: 0.85rem;">
+                            [[${p.direccion}]]
+                        </small>
+                    </div>
+
                     <div class="items-lista">
                         <div class="item-plato" th:each="d : ${p.getListaDetalles()}"
                              th:if="${d.producto != null && d.producto.categoria != null && #strings.contains(#strings.toUpperCase(d.producto.categoria.nombre), 'CALIENTE') && !d.cocinado}">

@@ -41,9 +41,8 @@
                                 <th>Producto</th>
                                 <th>Categoría</th>
                                 <th>Precio</th>
-                                <th>Stock</th>
-                                <th>Estado</th>
-                                <th class="text-center">Acciones</th>
+                                <th>Estado (En Carta)</th>
+                                <th class="text-center" style="width: 120px;">Acciones</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -62,11 +61,6 @@
                                     </span>
                                 </td>
                                 <td class="fw-bold text-jama-skin">S/ [[${#numbers.formatDecimal(p.precio, 1, 2)}]]</td>
-                                <td>
-                                    <span th:class="${p.stock <= 5} ? 'badge bg-danger' : 'badge bg-success'">
-                                        [[${p.stock}]] uds
-                                    </span>
-                                </td>
                                 <td>
                                     <div class="form-check form-switch custom-switch-jama">
                                         <input class="form-check-input" type="checkbox" th:checked="${p.estado == 1}"
@@ -93,7 +87,7 @@
     </main>
 </div>
 
-<!-- Modal Formulario -->
+<!-- Modal Formulario Simplificado sin Stock -->
 <div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow-lg">
@@ -118,20 +112,16 @@
                                 <input type="text" id="prodNombre" name="nombre" class="form-control rounded-3" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-jama-green">Descripción</label>
+                                <label class="form-label fw-bold small text-jama-green">Descripción / Detalles de cocina</label>
                                 <textarea id="prodDesc" name="descripcion" class="form-control rounded-3" rows="2"></textarea>
                             </div>
                             <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold small text-jama-green">Precio (S/)</label>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-jama-green">Precio de Venta (S/)</label>
                                     <input type="number" id="prodPrecio" name="precio" class="form-control rounded-3" step="0.01" required>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold small text-jama-green">Stock</label>
-                                    <input type="number" id="prodStock" name="stock" class="form-control rounded-3" required>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label fw-bold small text-jama-green">Categoría</label>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-jama-green">Categoría Estación</label>
                                     <select id="prodCat" name="categoria.id" class="form-select rounded-3" required>
                                         <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
                                     </select>

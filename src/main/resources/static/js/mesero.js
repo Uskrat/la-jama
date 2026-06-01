@@ -182,12 +182,30 @@ function enviarPedido() {
         confirmButtonText: 'Sí, mandar a cocina'
     }, async function() {
 
-        AppUtils.showLoading(true); // Bloqueamos la interfaz para evitar comandas duplicadas
+        AppUtils.showLoading(true);
+
+        // --- SOLUCIÓN DIRECTA PARA COCINA ---
+        // Recorremos el carrito recolectando lo que el cliente quitó para armar la nota automática
+        let notasDeOmision = [];
+        carrito.forEach(item => {
+            if (item.nombresSinDescontar && item.nombresSinDescontar.length > 0) {
+                notasDeOmision.push(`${item.nombre} (SIN: ${item.nombresSinDescontar.join(', ')})`);
+            }
+        });
+
+        // Almacenamos la nota del input del mesero y le sumamos las exclusiones de ingredientes de forma legible
+        const notaUsuario = document.getElementById('direccion').value || "";
+        let notaFinalParaCocina = notaUsuario;
+
+        if (notasDeOmision.length > 0) {
+            notaFinalParaCocina += (notaFinalParaCocina ? " | " : "") + "🚨 " + notasDeOmision.join(" - ");
+        }
+        // ------------------------------------
 
         const pedido = {
             id: pedidoId ? parseInt(pedidoId) : null,
             cliente: document.getElementById('cliente').value || "Mesa " + mesaId,
-            direccion: document.getElementById('direccion').value,
+            direccion: notaFinalParaCocina, // <-- AQUÍ SE ENVÍA TODA LA EXCLUSIÓN DE FORMA SEGURA
             listaDetalles: carrito.map(item => ({
                 producto: { id: parseInt(item.productoId) },
                 cantidad: item.cantidad,

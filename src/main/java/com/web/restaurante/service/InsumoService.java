@@ -9,6 +9,7 @@ import com.web.restaurante.model.Producto;
 import com.web.restaurante.repository.InsumoProductoRepository;
 import com.web.restaurante.repository.InsumoRepository;
 import com.web.restaurante.repository.ProductoRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -76,5 +77,10 @@ public class InsumoService {
             insumo.setStockActual(insumo.getStockActual() - total);
             insumoRepository.save(insumo);
         }
+    }
+
+    @Transactional
+    public void eliminarInsumoDeReceta(Long idInsumoProducto) {
+        insumoProductoRepository.deleteById(idInsumoProducto);
     }
 }

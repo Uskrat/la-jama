@@ -1,0 +1,79 @@
+ :root {
+     --lajama-green: #1B3A2C;
+     --lajama-peach: #fed7aa;
+     --lajama-skin: #FFB38A;
+     --lajama-cream: #FFF7ED;
+     --lajama-white: #FFFFFF;
+     --lajama-gray: #f8fafc;
+     --lajama-dark: #0f172a;
+     --lajama-border: #e2e8f0;
+ }
+
+ body, .main-content {
+     background-color: var(--lajama-cream) !important;
+     font-family: 'Inter', sans-serif;
+     color: var(--lajama-dark);
+ }
+
+ /* --- TARJETAS --- */
+ .card {
+     background: var(--lajama-white);
+     border: 2px solid var(--lajama-peach) !important;
+     border-radius: 16px !important;
+     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+ }
+
+ .card-body h5 {
+     color: var(--lajama-green);
+     font-weight: 700;
+     font-size: 1.1rem;
+     border-bottom: 2px solid var(--lajama-cream);
+     padding-bottom: 10px;
+ }
+
+ /* --- TABLAS --- */
+ .table thead th {
+     background-color: var(--lajama-gray);
+     color: var(--lajama-green);
+     font-weight: 700;
+     text-transform: uppercase;
+     font-size: 0.75rem;
+     letter-spacing: 0.5px;
+     padding: 12px;
+     border-bottom: 2px solid var(--lajama-peach);
+ }
+
+ .table tbody td {
+     padding: 10px 12px;
+     border-bottom: 1px solid var(--lajama-border);
+ }
+
+ /*Inputs incrustados en tabla*/
+ .table tbody td input.form-control-sm {
+     border: 1px solid transparent;
+     background-color: transparent;
+     font-weight: 500;
+     border-radius: 6px;
+     transition: all 0.2s ease;
+ }
+
+ .table tbody td input.form-control-sm:focus {
+     border-color: var(--lajama-skin) !important;
+     background-color: var(--lajama-white);
+     box-shadow: 0 0 0 3px rgba(255, 179, 138, 0.2);
+ }
+
+ /* --- BOTONES Y COMPONENTES --- */
+ .btn-primary {
+     background-color: var(--lajama-green) !important;
+     border: none !important;
+     font-weight: 600;
+ }
+
+ .btn-primary:hover {
+     background-color: #12261d !important;
+ }
+
+ .modal-content {
+     border: 2px solid var(--lajama-peach) !important;
+ }

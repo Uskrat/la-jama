@@ -6,11 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
         modalProductoInstance = new bootstrap.Modal(modalEl);
     }
 
-    // Interceptamos el formulario multi-part para controlar la subida de imágenes
     const form = document.getElementById('formProducto');
     if (form) {
         form.addEventListener('submit', function() {
-            AppUtils.showLoading(true); // Bloqueo mientras procesa el flujo binario en Spring
+            AppUtils.showLoading(true);
         });
     }
 });
@@ -49,7 +48,6 @@ function editarProducto(id) {
             document.getElementById('prodNombre').value = p.nombre;
             document.getElementById('prodDesc').value = p.descripcion || '';
             document.getElementById('prodPrecio').value = p.precio;
-            document.getElementById('prodStock').value = p.stock || 0;
 
             if (p.categoria) {
                 document.getElementById('prodCat').value = p.categoria.id;
@@ -75,10 +73,10 @@ function cambiarEstado(id, checkbox) {
         method: 'POST'
     }).then(res => {
         if (res.ok) {
-            AppUtils.showNotification('Estado del menú actualizado', 'success');
+            AppUtils.showNotification('Disponibilidad en carta modificada', 'success');
         } else {
             checkbox.checked = !checkbox.checked;
-            AppUtils.showNotification('No se pudo modificar la disponibilidad', 'error');
+            AppUtils.showNotification('No se pudo cambiar el estado del plato', 'error');
         }
     }).catch(() => {
         checkbox.checked = !checkbox.checked;
@@ -102,11 +100,10 @@ function eliminarProducto(id) {
         title: '¿Remover plato de la carta?',
         text: "Esta acción dará de baja el producto en el inventario y cartas digitales.",
         icon: 'warning',
-        confirmButtonColor: '#933D2D', // Tonalidad de advertencia institucional
+        confirmButtonColor: '#933D2D',
         confirmButtonText: 'Sí, eliminar'
     }, function() {
         AppUtils.showLoading(true);
-        // Redirección controlada tras aprobación con spinner preventivo
         window.location.href = `/admin/productos/eliminar/${id}`;
     });
 }

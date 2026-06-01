@@ -60,4 +60,10 @@ public class InsumoController {
         insumoService.agregarInsumoAProducto(idProducto, idInsumo, cantidad);
         return "redirect:/insumos";
     }
+
+    @PostMapping("/producto/receta/eliminar/{id}")
+    public String eliminarInsumoDeReceta(@PathVariable Long id) {
+        insumoService.eliminarInsumoDeReceta(id);
+        return "redirect:/insumos";
+    }
 }
