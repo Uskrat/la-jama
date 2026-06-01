@@ -4,18 +4,10 @@ let asignaciones = [];
 let controlesRuta = [];
 let marcadoresPendientes = [];
 const coloresRepartidores = {};
-let toastInstance = null;
-let confirmModalInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initMapa();
     actualizarMapaCompleto();
-
-    const toastEl = document.getElementById('liveToast');
-    if (toastEl) toastInstance = bootstrap.Toast.getOrCreateInstance(toastEl);
-
-    const modalEl = document.getElementById('modalConfirmar');
-    if (modalEl) confirmModalInstance = new bootstrap.Modal(modalEl);
 
     document.querySelectorAll('.tarjeta-repartidor').forEach(rep => {
         rep.classList.remove('repartidor-ocupado');
@@ -77,7 +69,6 @@ function actualizarMapaCompleto() {
     verificarPedidosVacios();
 }
 
-
 function cambiarColorRepartidor(inputEl) {
     const rId = inputEl.id.replace('color-', '');
     const nuevoColor = inputEl.value;
@@ -97,9 +88,7 @@ function cambiarColorRepartidor(inputEl) {
     actualizarMapaCompleto();
 }
 
-
 function seleccionarPedido(el) {
-    // Cambiamos .seleccionada por .selected (para que coincida con el CSS)
     document.querySelectorAll('.tarjeta-pedido').forEach(n => n.classList.remove('selected'));
     selectedPedidoNode = el;
     el.classList.add('selected');
@@ -108,7 +97,7 @@ function seleccionarPedido(el) {
 function vincularRepartidor(elRepartidor) {
     if (elRepartidor.classList.contains('repartidor-ocupado')) return;
     if (!selectedPedidoNode) {
-        notify("⚠️ Selecciona un pedido primero", "bg-warning");
+        AppUtils.showNotification("⚠️ Selecciona un pedido primero", "warning");
         return;
     }
 
@@ -119,7 +108,7 @@ function vincularRepartidor(elRepartidor) {
     const nombreOriginal = tagNombre.getAttribute('data-nombre-original');
 
     const direccionFull = selectedPedidoNode.getAttribute('data-direccion') || "";
-        const direccionCorta = direccionFull.split(',')[0];
+    const direccionCorta = direccionFull.split(',')[0];
 
     const colorInput = document.getElementById(`color-${rId}`);
     const colorElegido = colorInput ? colorInput.value : "#933D2D";
@@ -133,7 +122,6 @@ function vincularRepartidor(elRepartidor) {
         nombreRep: nombreOriginal
     });
 
-    // UI Update
     tagNombre.innerText = `${nombreOriginal} - Ruta Activa`;
     elRepartidor.querySelector('.estado-texto').innerText = "Ocupado";
     elRepartidor.querySelector('.estado-texto').className = "estado-texto text-warning fw-bold";
@@ -172,7 +160,7 @@ function quitarAsignacion(event, pId) {
     const pNode = document.getElementById(`pedido-${pId}`);
     if (pNode) {
         pNode.style.display = 'block';
-        pNode.classList.remove('selected'); // Antes decía seleccionada
+        pNode.classList.remove('selected');
     }
 
     if (asigRemovida) {
@@ -189,10 +177,6 @@ function quitarAsignacion(event, pId) {
     }
     actualizarMapaCompleto();
 }
-
-/**
- * --- RENDERIZADO GEOESPACIAL ---
- */
 
 function renderizarPuntosPendientes() {
     marcadoresPendientes.forEach(m => mapa.removeLayer(m));
@@ -229,11 +213,8 @@ function trazarRutasReales() {
     Object.values(rutasPorRepartidor).forEach(ruta => {
         const control = L.Routing.control({
             waypoints: ruta.puntos,
-            // Ajustes de precisión para calles no indexadas en Chiclayo (como zonas de Las Brisas)
-            routerOptions: {
-                radius: 1000 // Busca la pista transitable más cercana en un radio de 1km
-            },
-            missingRouteTolerance: 100, // Si la calle está desconectada en OSM, une con línea recta en vez de colgarse
+            routerOptions: { radius: 1000 },
+            missingRouteTolerance: 100,
             createLine: function() { return null; },
             showAlternatives: false,
             addWaypoints: false,
@@ -247,25 +228,17 @@ function trazarRutasReales() {
             const coordinates = e.routes[0].coordinates;
 
             const shadowLine = L.polyline(coordinates, {
-                color: 'white',
-                weight: 8,
-                opacity: 1,
-                pane: 'capaBordes'
+                color: 'white', weight: 8, opacity: 1, pane: 'capaBordes'
             }).addTo(mapa);
 
             const mainLine = L.polyline(coordinates, {
-                color: ruta.color,
-                weight: 5,
-                opacity: 0.7,
-                lineJoin: 'round',
-                pane: 'capaLineas'
+                color: ruta.color, weight: 5, opacity: 0.7, lineJoin: 'round', pane: 'capaLineas'
             }).addTo(mapa);
 
             controlesRuta.push(shadowLine, mainLine, control);
         });
     });
 }
-
 
 function limpiarRutas() {
     controlesRuta.forEach(item => {
@@ -286,62 +259,39 @@ function initMapa() {
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapa);
 
-    // Marcador de La Jama con estilo del restaurante (Verde y Peach)
     L.circleMarker([ORIGEN_COORDS.lat, ORIGEN_COORDS.lng], {
-        radius: 10,
-        fillColor: "#1B3A2C", // Verde Jama
-        color: "#fed7aa",     // Borde Peach
-        weight: 3,
-        fillOpacity: 1
+        radius: 10, fillColor: "#1B3A2C", color: "#fed7aa", weight: 3, fillOpacity: 1
     }).addTo(mapa).bindPopup("<b>La Jama</b><br>Punto de Origen");
 }
 
-function notify(msj, type) {
-    const toastEl = document.getElementById('liveToast');
-    const toastMsgEl = document.getElementById('toastMessage');
-    if (toastEl && toastMsgEl && toastInstance) {
-        toastEl.className = `toast align-items-center text-white border-0 ${type}`;
-        toastMsgEl.innerText = msj;
-        toastInstance.show();
-    }
-}
-
+// --- REFACTORIZACIÓN COMPLETA A APPUTILS CONTROLLER ---
 function abrirConfirmacion() {
     if (asignaciones.length === 0) {
-        alert("⚠️ Debes asignar al menos un pedido a un repartidor antes de despachar.");
+        AppUtils.showNotification("⚠️ Debes asignar al menos un pedido antes de despachar.", "warning");
         return;
     }
 
-    const lista = document.getElementById('listaResumen');
-    if (lista) {
-        lista.innerHTML = asignaciones.map(a => `
-            <div class="mb-2 border-bottom pb-1">
-                <i class="bi bi-truck text-primary me-2"></i>
-                <b style="color: ${a.color}">#${a.pedidoId}</b> - ${a.cliente}
-                <span class="badge bg-dark ms-2">${a.nombreRep}</span>
-            </div>
-        `).join('');
-    }
+    // Armamos el resumen en texto HTML estilizado para el cuadro SweetAlert2
+    const resumenHtml = asignaciones.map(a => `
+        <div style="text-align: left; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; font-size:0.85rem;">
+            <i class="bi bi-truck me-2" style="color: ${a.color}"></i>
+            <b>#${a.pedidoId}</b> - ${a.cliente} <span class="badge bg-secondary ms-2">${a.nombreRep}</span>
+        </div>
+    `).join('');
 
-    // Rearmar el modal si no existe todavía (por si el DOM tardó)
-    if (!confirmModalInstance) {
-        const modalEl = document.getElementById('modalConfirmar');
-        if (modalEl) confirmModalInstance = new bootstrap.Modal(modalEl);
-    }
-
-    if (confirmModalInstance) {
-        confirmModalInstance.show();
-    } else {
-        // Fallback: si Bootstrap no cargó el modal, preguntar con confirm()
-        if (confirm("¿Confirmar el despacho de " + asignaciones.length + " pedido(s)?")) {
-            ejecutarEnvioFinal();
-        }
-    }
+    AppUtils.showConfirmationDialog({
+        title: '¿Confirmar Salida de Unidades?',
+        html: `<p>¿Deseas despachar los siguientes comensales a ruta?</p><div style="background:#fdf6e3; padding:15px; border-radius:10px; border:1px solid #fed7aa; max-height:200px; overflow-y:auto;">${resumenHtml}</div>`,
+        icon: 'question',
+        confirmButtonColor: '#1B3A2C',
+        confirmButtonText: 'Sí, Despachar'
+    }, () => {
+        ejecutarEnvioFinal();
+    });
 }
 
 function ejecutarEnvioFinal() {
-    if (confirmModalInstance) confirmModalInstance.hide();
-    notify("🚀 Despachando unidades...", "bg-dark");
+    AppUtils.showLoading(true);
 
     const agrupado = asignaciones.reduce((acc, cur) => {
         if (!acc[cur.repartidorId]) acc[cur.repartidorId] = [];
@@ -350,7 +300,6 @@ function ejecutarEnvioFinal() {
     }, {});
 
     const promesas = Object.keys(agrupado).map(rId => {
-        // Spring necesita cada pedido como parámetro separado: pedidos=41&pedidos=39
         const formData = new URLSearchParams();
         agrupado[rId].forEach(pId => formData.append('pedidos', pId));
         formData.append('repartidorId', rId);
@@ -366,14 +315,13 @@ function ejecutarEnvioFinal() {
 
     Promise.all(promesas)
         .then(() => {
-            notify("✅ Despacho confirmado", "bg-success");
+            AppUtils.showLoading(false);
+            AppUtils.showNotification("✅ Despacho confirmado y unidades en ruta", "success");
             setTimeout(() => window.location.reload(), 1500);
         })
         .catch(err => {
+            AppUtils.showLoading(false);
             console.error("Error al despachar:", err);
-            notify("❌ Error al despachar: " + err.message, "bg-danger");
+            AppUtils.showNotification("❌ Error: " + err.message, "error");
         });
-
-
-
 }
