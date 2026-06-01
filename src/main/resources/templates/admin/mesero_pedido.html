@@ -6,27 +6,13 @@
     <title>La Jama - Nueva Comanda</title>
     <th:block th:replace="~{links :: headLinks}"></th:block>
     <link rel="stylesheet" th:href="@{/css/mesero.css}">
-    <style>
-        .modal-insumos { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
-        .modal-insumos.show { display:flex; }
-        .modal-box { background:#fff; border-radius:16px; padding:24px; min-width:320px; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
-    </style>
 </head>
 <body>
 <div class="d-flex">
     <div th:replace="~{sidebar :: sidebar(activeUri='/admin/mesas')}"></div>
 
     <main id="main-content" class="main-content w-100 bg-light">
-        <header class="header-size m-2 ms-3 me-0 mt-3 p-3">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <button id="open-sidebar" class="btn btn-light d-md-none">
-                        <i class="bi bi-list fs-4"></i>
-                    </button>
-                    <h4 class="mb-0 fw-bold">Nueva Comanda</h4>
-                </div>
-            </div>
-        </header>
+        <div th:replace="~{sidebar :: logistica_header('Nueva Comanda')}"></div>
 
         <div class="container-fluid p-4">
             <div class="comanda-wrapper">
@@ -69,8 +55,8 @@
                             <label for="cliente">Mesa</label>
                         </div>
                         <div class="form-floating">
-                            <input type="text" id="direccion" class="form-control" placeholder="Nota">
-                            <label for="direccion">Nota</label>
+                            <input type="text" id="direccion" class="form-control" placeholder="Nota general">
+                            <label for="direccion">Nota de la Orden</label>
                         </div>
                     </div>
 
@@ -91,15 +77,22 @@
     </main>
 </div>
 
-<!-- Modal quitar insumos -->
-<div class="modal-insumos" id="modalInsumos">
-    <div class="modal-box">
-        <h6 class="fw-bold mb-1" id="modalNombrePlato"></h6>
-        <p class="text-muted small mb-3">Desmarca los insumos que el cliente NO quiere:</p>
-        <div id="listaInsumosModal" class="mb-3"></div>
-        <div class="d-flex gap-2 justify-content-end">
-            <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
-            <button class="btn btn-success" onclick="confirmarAgregarAlCarrito()">Aceptar</button>
+<!-- Modal Personalización Insumos Estandarizado -->
+<div class="modal fade" id="modalInsumos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title fw-bold" id="modalNombrePlato">Personalizar Plato</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i>Desmarca los insumos que el cliente <b>NO</b> desea:</p>
+                <div id="listaInsumosModal" class="mb-0"></div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-success rounded-pill px-3" onclick="confirmarAgregarAlCarrito()">Aceptar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -107,12 +100,11 @@
 <th:block th:replace="~{links :: scriptLinksPlus}"></th:block>
 <script th:src="@{/js/mesero.js}"></script>
 <script>
-    // Cargar número de mesa automáticamente
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const mesaId = urlParams.get('mesaId');
         if (mesaId) {
-            document.getElementById('cliente').value = 'Mesa: ' + mesaId;
+            document.getElementById('cliente').value = 'Mesa #' + mesaId;
         }
     });
 </script>
