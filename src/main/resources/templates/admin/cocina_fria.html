@@ -29,7 +29,7 @@
         </div>
 
         <div th:unless="${#lists.isEmpty(pedidos)}" class="pedidos-grid">
-            <div th:each="p : ${pedidos}" class="card-pedido">
+            <div th:each="p : ${pedidos}" class="card-pedido" th:id="'pedido-' + ${p.id}">
                 <div class="card-header">
                     <span class="badge-id">ORD. #[[${p.id}]]</span>
                     <div class="timer-container" th:data-start="${p.fechaCreacion}">
@@ -61,7 +61,7 @@
                         <a th:href="@{'/admin/cocina/ticket/' + ${p.id} + '/fria'}" target="_blank" class="btn-printer">
                             <i class="bi bi-printer"></i>
                         </a>
-                        <form th:action="@{/admin/cocina/completar}" method="post" class="w-100 m-0">
+                        <form th:action="@{/admin/cocina/completar}" method="post" class="form-despachar w-100 m-0">
                             <input type="hidden" name="pedidoId" th:value="${p.id}">
                             <input type="hidden" name="tipoEstacion" value="fria">
                             <button type="submit" class="btn-despachar">DESPACHAR PLATO</button>

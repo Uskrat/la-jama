@@ -12,14 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initModuloEntrega() {
-    // 1. Inicializar Mapa (Centrado en Chiclayo)
     mapaPreview = L.map('mapa-preview').setView([-6.771, -79.838], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(mapaPreview);
 
-    // 2. Configurar Buscador Gratuito COORDENADAS EXACTAS
     const provider = new window.GeoSearch.OpenStreetMapProvider({
         params: {
             'accept-language': 'es',
@@ -40,44 +38,33 @@ function initModuloEntrega() {
 
     mapaPreview.addControl(searchControl);
 
-    // 3. Evento al seleccionar ubicación desde el buscador flotante
     mapaPreview.on('geosearch/showlocation', (result) => {
-        const { x, y, label } = result.location; // x=lng, y=lat
+        const { x, y, label } = result.location;
         actualizarPuntoEntrega(y, x, label);
     });
 
-    // 4. NUEVO: Evento de Clic Directo en el Mapa (Sin Errores)
     mapaPreview.on('click', async (e) => {
         const { lat, lng } = e.latlng;
 
-        // Ponemos un texto temporal mientras consulta la calle exacta
         document.getElementById('lat').value = lat.toFixed(6);
         document.getElementById('lng').value = lng.toFixed(6);
         document.getElementById('inputDireccion').value = "Obteniendo dirección exacta...";
 
-        // Mover o crear el marcador de inmediato para que la interfaz responda rápido
         dibujarMarcador(lat, lng, "Cargando dirección...");
 
         try {
-            // Reverse Geocoding usando el Nominatim oficial de OSM
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`);
             const data = await response.json();
-
-            // Si encuentra la dirección, la acortamos para que no sea un texto gigante
             const direccionReal = data.display_name ? data.display_name : `Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-
-            // Actualizamos los campos finales con el nombre real del lugar cliqueado
             actualizarPuntoEntrega(lat, lng, direccionReal);
 
         } catch (error) {
             console.error("Error al obtener la dirección por click:", error);
-            // Si el servidor externo falla, no se cae la app; guardamos las coordenadas como dirección
             actualizarPuntoEntrega(lat, lng, `Dirección seleccionada (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
         }
     });
 }
 
-// FUNCIONES AUXILIARES DE SOPORTE (Para mantener el código limpio y ordenado)
 function actualizarPuntoEntrega(lat, lng, direccion) {
     document.getElementById('lat').value = lat;
     document.getElementById('lng').value = lng;
@@ -152,76 +139,92 @@ function seleccionarTipo(tipo) {
     tipoPedidoCajero = tipo;
     const esDelivery = tipo === 'DELIVERY';
 
-    // Botones
     document.getElementById('btnDelivery').style.background = esDelivery ? 'var(--lajama-brown)' : '#e9ecef';
     document.getElementById('btnDelivery').style.color = esDelivery ? 'white' : '#333';
     document.getElementById('btnParaLlevar').style.background = !esDelivery ? 'var(--lajama-brown)' : '#e9ecef';
     document.getElementById('btnParaLlevar').style.color = !esDelivery ? 'white' : '#333';
 
-    // Mostrar u ocultar mapa y dirección
     document.getElementById('bloqueDir').style.display = esDelivery ? 'block' : 'none';
     document.getElementById('mapa-preview').style.display = esDelivery ? 'block' : 'none';
 
-    // Título
     document.getElementById('tituloEntrega').innerHTML = esDelivery
         ? '<i class="bi bi-geo-alt-fill me-2"></i> Datos de Entrega'
         : '<i class="bi bi-bag me-2"></i> Datos del Cliente';
 }
 
+// --- ACOPLE INTERACTIVO CON APPUTILS LOGÍSTICA ---
 function confirmarPedido() {
     const lat = document.getElementById('lat').value;
     const lng = document.getElementById('lng').value;
     const cliente = document.getElementById('cliente_nombre').value.trim();
-
     const esDelivery = tipoPedidoCajero === 'DELIVERY';
 
+    // 1. Validaciones usando las alertas estandarizadas de AppUtils
     if (esDelivery && (!lat || !cliente || carrito.length === 0)) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Datos Incompletos',
-            text: 'Debes buscar una dirección, ingresar el cliente y añadir productos.',
-            confirmButtonColor: '#1B3A2C'
-        });
+        AppUtils.showNotification("⚠️ Datos incompletos: ingresa cliente, dirección en mapa y productos.", "warning");
         return;
     }
 
     if (!esDelivery && (!cliente || carrito.length === 0)) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Datos Incompletos',
-            text: 'Debes ingresar el nombre del cliente y añadir productos.',
-            confirmButtonColor: '#1B3A2C'
-        });
+        AppUtils.showNotification("⚠️ Datos incompletos: ingresa el nombre del cliente y añade productos.", "warning");
         return;
     }
 
-    const data = {
-        cliente: cliente,
-        direccion: esDelivery
-            ? document.getElementById('inputDireccion').value
-            : 'Recojo en local',
-        latitud: esDelivery ? parseFloat(lat) : null,
-        longitud: esDelivery ? parseFloat(lng) : null,
-        montoTotal: parseFloat(document.getElementById('label-total').innerText),
-        tipoPedido: esDelivery ? 'DELIVERY' : 'LOCAL',
-        listaDetalles: carrito.map(i => ({
-            producto: { id: i.id },
-            cantidad: i.cantidad,
-            precioUnitario: i.precio,
-            subtotal: i.subtotal
-        }))
-    };
+    // 2. Cuadro de confirmación estructurado por callback
+    AppUtils.showConfirmationDialog({
+        title: esDelivery ? '¿Enviar a Despacho Delivery?' : '¿Enviar a Cocina Local?',
+        text: `Se registrará la comanda a nombre de ${cliente} por un total de S/ ${document.getElementById('label-total').innerText}`,
+        icon: 'question',
+        confirmButtonColor: '#1B3A2C',
+        confirmButtonText: 'Sí, confirmar comanda'
+    }, function() {
 
-    fetch('/admin/caja/delivery/guardar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    }).then(res => {
-        if (res.ok) {
-            const msg = esDelivery ? 'Orden enviada a despacho' : 'Orden enviada a cocina';
-            const redirect = esDelivery ? '/admin/despacho' : '/admin/caja';
-            Swal.fire('¡Éxito!', msg, 'success')
-                .then(() => window.location.href = redirect);
-        }
+        // Activamos la pantalla de carga para evitar colisiones concurrentes en la persistencia
+        AppUtils.showLoading(true);
+
+        const data = {
+            cliente: cliente,
+            direccion: esDelivery ? document.getElementById('inputDireccion').value : 'Recojo en local',
+            latitud: esDelivery ? parseFloat(lat) : null,
+            longitud: esDelivery ? parseFloat(lng) : null,
+            montoTotal: parseFloat(document.getElementById('label-total').innerText),
+            tipoPedido: esDelivery ? 'DELIVERY' : 'LOCAL',
+            listaDetalles: carrito.map(i => ({
+                producto: { id: i.id },
+                cantidad: i.cantidad,
+                precioUnitario: i.precio,
+                subtotal: i.subtotal
+            }))
+        };
+
+        fetch('/admin/caja/delivery/guardar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => {
+            AppUtils.showLoading(false);
+            if (res.ok) {
+                const msg = esDelivery ? 'Orden enviada a despacho con éxito' : 'Orden enviada a cocina con éxito';
+                const redirect = esDelivery ? '/admin/despacho' : '/admin/caja';
+
+                // Dispara el SweetAlert de confirmación final
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Comanda Registrada!',
+                    text: msg,
+                    confirmButtonColor: '#1B3A2C'
+                }).then(() => {
+                    window.location.href = redirect;
+                });
+            } else {
+                AppUtils.showNotification("❌ Error en el servidor al guardar comanda", "error");
+            }
+        })
+        .catch(err => {
+            AppUtils.showLoading(false);
+            console.error("Fallo de red:", err);
+            AppUtils.showNotification("❌ Fallo de conexión con el servidor", "error");
+        });
     });
 }
