@@ -4,7 +4,7 @@ let currentPedidoId = null;
 let mesaModal = null;
 let precuentaModal = null;
 
-// --- CONFIGURACIÓN WEBSOCKET ---
+// --- CONFIGURACIÓN WEBSOCKET (CONSERVADA INTEGRALMENTE) ---
 var socket = new SockJS('/ws-restaurante');
 var stompClient = Stomp.over(socket);
 
@@ -19,21 +19,8 @@ function mostrarNotificacionCocina(mensaje) {
     var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play().catch(e => console.log("Sonido bloqueado por el navegador"));
 
-    const toastDiv = document.createElement('div');
-    toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
-    toastDiv.style.zIndex = '9999';
-    toastDiv.innerHTML = `
-        <div class="toast show align-items-center text-white bg-warning border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body" style="color: black !important;">
-                    <i class="bi bi-bell-fill me-2"></i> <strong>AVISO:</strong> ${mensaje}
-                </div>
-                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>`;
-    document.body.appendChild(toastDiv);
-
-    setTimeout(() => { window.location.reload(); }, 4000);
+    AppUtils.showNotification(`📢 AVISO: ${mensaje}`, 'warning');
+    setTimeout(() => { window.location.reload(); }, 2500);
 }
 
 // --- INITIALIZATION ---
@@ -57,13 +44,11 @@ function prepararGestion(elemento) {
     currentPedidoId = elemento.getAttribute('data-pedido-id');
     currentMesaId = id;
 
-    // REGLA DE ORO: Si no hay pedido activo en la BD, la mesa está limpia (Verde) -> Vamos a la carta
     if (pedidoEstado === 'NINGUNO' || !currentPedidoId) {
         window.location.href = '/admin/mesero/nuevo?mesaId=' + id;
         return;
     }
 
-    // SI HAY UN PEDIDO EN CURSO (ROJO, AMARILLO O BLANCO): Abrimos el modal de control
     document.getElementById('lblNumero').innerText = currentMesaNumero;
 
     const btnEntregar = document.getElementById('btnEntregarPlato');
@@ -72,28 +57,20 @@ function prepararGestion(elemento) {
     const numMesaTexto = document.getElementById('numMesaTexto');
     const tarjetaMesa = elemento;
 
-    // Reset por defecto para el estado ROJO (En cocina, botones de acción bloqueados)
     btnEntregar.classList.add('d-none');
     txtConfirmacion.classList.add('d-none');
     btnDesocupar.classList.add('disabled');
 
-    // MESA AMARILLA: Validamos si la cocina ya terminó el lote
     if (tarjetaMesa.classList.contains('lista-para-recoger')) {
         numMesaTexto.innerText = currentMesaNumero;
         txtConfirmacion.classList.remove('d-none');
         btnEntregar.classList.remove('d-none');
     }
-    // MESA BLANCA: Validamos si el mesero ya marcó "Todo Conforme" (Pedido cambia a ASIGNADO)
     else if (pedidoEstado === 'ASIGNADO') {
         btnDesocupar.classList.remove('disabled');
     }
 
     if (mesaModal) mesaModal.show();
-}
-
-// --- REDIRECCIONES Y ACCIONES DEL MODAL ---
-function abrirGestion(id, estado, numero) {
-    window.location.href = '/admin/mesero/nuevo?mesaId=' + id;
 }
 
 function irAMenu() {
@@ -106,45 +83,59 @@ function irAMenu() {
     }
 }
 
-// Llama al endpoint "marcar-en-mesa" que cambia el estado a ASIGNADO (Blanco)
-async function marcarComoEntregado() {
+// --- ACOPLE INTERACTIVO CON APPUTILS ---
+function marcarComoEntregado() {
     if (!currentMesaNumero) {
-        alert("No se ha seleccionado ninguna mesa.");
+        AppUtils.showNotification("No se ha seleccionado ninguna mesa.", "error");
         return;
     }
 
-    if (confirm(`¿Confirmas que la orden está completa y todo conforme en la mesa #${currentMesaNumero}?`)) {
+    AppUtils.showConfirmationDialog({
+        title: '¿Registrar Conformidad?',
+        text: `¿Confirmas que la orden está completa y todo conforme en la Mesa #${currentMesaNumero}?`,
+        icon: 'question',
+        confirmButtonColor: '#f59e0b',
+        confirmButtonText: 'Sí, todo conforme'
+    }, async function() {
+        if (mesaModal) mesaModal.hide();
+        AppUtils.showLoading(true);
+
         try {
             const res = await fetch('/admin/mesero/marcar-en-mesa/' + currentPedidoId, { method: 'POST' });
+            AppUtils.showLoading(false);
             if (res.ok) {
-                if (mesaModal) mesaModal.hide();
-                window.location.reload();
+                AppUtils.showNotification("Servicio marcado en mesa", "success");
+                setTimeout(() => window.location.reload(), 1000);
             } else {
-                alert("Error al registrar la entrega en el servidor.");
+                AppUtils.showNotification("Error al registrar la entrega", "error");
             }
         } catch (error) {
-            console.error("Error en la petición:", error);
-            alert("Sin conexión con el servidor.");
+            AppUtils.showLoading(false);
+            console.error(error);
+            AppUtils.showNotification("Sin conexión con el servidor", "error");
         }
-    }
+    });
 }
 
-// Inicia el proceso de pago final
 async function validarDesocupar() {
     let mesaNumero = document.getElementById('lblNumero').innerText;
     let tarjetaMesa = document.querySelector(`[data-numero="${mesaNumero}"]`);
 
     const pedidoEstadoActual = tarjetaMesa.getAttribute('data-pedido-estado');
     const estadosNoCobrar = ['EN_COCINA', 'PENDIENTE'];
+
     if (estadosNoCobrar.includes(pedidoEstadoActual)) {
-        alert(`¡No puedes cobrar la Mesa #${mesaNumero}! Aún hay productos en cocina.`);
+        AppUtils.showNotification(`¡No puedes cobrar la Mesa #${mesaNumero}! Aún hay productos en cocina.`, "warning");
         return;
     }
 
+    AppUtils.showLoading(true);
+
     try {
         const res = await fetch('/admin/mesas/precuenta/' + mesaNumero);
+        AppUtils.showLoading(false);
         if (!res.ok) {
-            alert("No se encontraron consumos activos para esta mesa.");
+            AppUtils.showNotification("No se encontraron consumos activos para esta mesa.", "warning");
             return;
         }
 
@@ -159,10 +150,10 @@ async function validarDesocupar() {
         data.detalles.forEach(d => {
             const fila = document.createElement('tr');
             fila.innerHTML = `
-                <td>${d.producto.nombre}</td>
-                <td class="text-center fw-bold">${d.cantidad}</td>
-                <td class="text-end">S/. ${d.precioUnitario.toFixed(2)}</td>
-                <td class="text-end fw-bold">S/. ${d.subtotal.toFixed(2)}</td>
+                <td class="p-2">${d.producto.nombre}</td>
+                <td class="text-center fw-bold p-2">${d.cantidad}</td>
+                <td class="text-end p-2">S/. ${d.precioUnitario.toFixed(2)}</td>
+                <td class="text-end fw-bold p-2">S/. ${d.subtotal.toFixed(2)}</td>
             `;
             cuerpoTabla.appendChild(fila);
         });
@@ -171,25 +162,36 @@ async function validarDesocupar() {
         if (precuentaModal) precuentaModal.show();
 
     } catch (error) {
-        console.error("Error al cargar precuenta:", error);
-        alert("Error al conectar con el servidor para generar la precuenta.");
+        AppUtils.showLoading(false);
+        console.error(error);
+        AppUtils.showNotification("Error al conectar con el servidor para la precuenta.", "error");
     }
 }
 
-// Ejecuta el cierre de comanda y pone la mesa en Verde nuevamente
-async function confirmarPagoFinal() {
-    if (confirm("¿Confirmas el pago completo y deseas desocupar la mesa?")) {
+function confirmarPagoFinal() {
+    AppUtils.showConfirmationDialog({
+        title: '¿Confirmar Pago y Desocupar?',
+        text: `Se procesará el cierre de comanda definitivo para la Mesa #${currentMesaNumero}.`,
+        icon: 'warning',
+        confirmButtonColor: '#166534',
+        confirmButtonText: 'Sí, facturar y liberar'
+    }, async function() {
+        if (precuentaModal) precuentaModal.hide();
+        AppUtils.showLoading(true);
+
         try {
             const res = await fetch(`/admin/mesero/finalizar-atencion/${currentPedidoId}?mesaId=${currentMesaId}`, { method: 'POST' });
+            AppUtils.showLoading(false);
             if (res.ok) {
-                if (precuentaModal) precuentaModal.hide();
-                window.location.reload();
+                AppUtils.showNotification("Mesa liberada correctamente", "success");
+                setTimeout(() => window.location.reload(), 1000);
             } else {
-                alert("Error al liberar la mesa");
+                AppUtils.showNotification("Error al liberar la mesa en el servidor", "error");
             }
         } catch (error) {
-            console.error("Error en la petición:", error);
-            alert("Sin conexión con el servidor");
+            AppUtils.showLoading(false);
+            console.error(error);
+            AppUtils.showNotification("Sin conexión con el servidor", "error");
         }
-    }
+    });
 }

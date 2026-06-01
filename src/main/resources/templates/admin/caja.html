@@ -29,12 +29,9 @@
                 </div>
             </div>
 
-            <!-- ALERTA APROBADO -->
-            <div th:if="${param.aprobado}" class="alert alert-success border-0 shadow-sm rounded-4 mb-4">
-                <i class="bi bi-check-circle-fill me-2"></i> Pedido enviado a cocina correctamente.
-            </div>
+            <div id="param-aprobado" th:if="${param.aprobado}" style="display: none;"></div>
+            <div id="param-success" th:if="${param.success}" style="display: none;"></div>
 
-            <!-- PEDIDOS PENDIENTES DE CARTA -->
             <div th:if="${not #lists.isEmpty(pedidosPendientes)}" class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header border-0 py-3 d-flex align-items-center gap-2"
                      style="background:#fff8e8;">
@@ -48,62 +45,56 @@
                 <div class="card-body p-0">
                     <table class="table table-hover align-middle mb-0">
                         <thead style="background:#fdf6e3;">
-                            <tr>
-                                <th class="ps-4">ID</th>
-                                <th>Cliente</th>
-                                <th>Dirección</th>
-                                <th>Total</th>
-                                <th>Hora</th>
-                                <th class="text-end pe-4">Acción</th>
-                            </tr>
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Cliente</th>
+                            <th>Dirección</th>
+                            <th>Total</th>
+                            <th>Hora</th>
+                            <th class="text-end pe-4">Acción</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="p : ${pedidosPendientes}" style="border-left: 4px solid #d6b656;">
-                                <td class="ps-4">
-                                    <span class="fw-bold" style="color:#7a5c1e;">#[[${p.id}]]</span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold">[[${p.cliente}]]</div>
-                                    <small class="text-muted"><i class="bi bi-whatsapp me-1 text-success"></i>Carta digital</small>
-                                </td>
-                                <td>
-                                    <small class="text-muted" th:text="${p.direccion}"></small>
-                                </td>
-                                <td>
+                        <tr th:each="p : ${pedidosPendientes}" style="border-left: 4px solid #d6b656;">
+                            <td class="ps-4">
+                                <span class="fw-bold" style="color:#7a5c1e;">#[[${p.id}]]</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">[[${p.cliente}]]</div>
+                                <small class="text-muted"><i class="bi bi-whatsapp me-1 text-success"></i>Carta digital</small>
+                            </td>
+                            <td>
+                                <small class="text-muted" th:text="${p.direccion}"></small>
+                            </td>
+                            <td>
                                     <span class="fw-bold" style="color:#933D2D;">
                                         S/ [[${#numbers.formatDecimal(p.montoTotal, 1, 2)}]]
                                     </span>
-                                </td>
-                                <td>
+                            </td>
+                            <td>
                                     <span class="badge bg-light text-dark border">
                                         <i class="bi bi-clock me-1"></i>
                                         [[${#temporals.format(p.fechaCreacion, 'HH:mm')}]]
                                     </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <div class="d-flex gap-2 justify-content-end">
-                                        <!-- Aprobar → enviar a cocina -->
-                                        <form th:action="@{/admin/caja/aprobar/{id}(id=${p.id})}" method="post">
-                                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-3">
-                                                <i class="bi bi-check-lg me-1"></i> Enviar a Cocina
-                                            </button>
-                                        </form>
-                                        <!-- Rechazar -->
-                                        <form th:action="@{/admin/caja/rechazar/{id}(id=${p.id})}" method="post">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                                                <i class="bi bi-x-lg me-1"></i> Rechazar
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <form th:action="@{/admin/caja/aprobar/{id}(id=${p.id})}" method="post" class="form-aprobar m-0">
+                                        <button type="submit" class="btn btn-success btn-sm rounded-pill px-3">
+                                            <i class="bi bi-check-lg me-1"></i> Enviar a Cocina
+                                        </button>
+                                    </form>
+                                    <form th:action="@{/admin/caja/rechazar/{id}(id=${p.id})}" method="post" class="form-rechazar m-0">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                            <i class="bi bi-x-lg me-1"></i> Rechazar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <div th:if="${param.success}" class="alert alert-jama-success border-0 shadow-sm rounded-4 mb-4">
-                <i class="bi bi-check-circle-fill me-2"></i> El cobro se registró correctamente y la caja ha sido actualizada.
             </div>
 
             <div class="card card-tabla border-0 shadow-sm rounded-4">
@@ -155,7 +146,7 @@
                                     <span class="h6 fw-bold mb-0 text-jama-skin">S/ [[${#numbers.formatDecimal(p.montoTotal, 1, 2)}]]</span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <form th:action="@{/admin/caja/liquidar}" method="post" class="m-0">
+                                    <form th:action="@{/admin/caja/liquidar}" method="post" class="form-liquidar m-0">
                                         <input type="hidden" name="pedidoId" th:value="${p.id}">
                                         <button type="submit" class="btn btn-jama-cobrar rounded-pill shadow-sm px-4">
                                             <i class="bi bi-cash-stack me-1"></i> Cobrar

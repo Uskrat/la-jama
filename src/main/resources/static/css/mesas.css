@@ -1,89 +1,212 @@
-/* Contenedor principal de las mesas */
-.grid-mesas {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 20px;
-    padding: 20px;
+:root {
+    --lajama-green: #1B3A2C;
+    --lajama-peach: #fed7aa;
+    --lajama-skin: #FFB38A;
+    --lajama-cream: #FFF7ED;
+    --lajama-white: #FFFFFF;
 }
 
-/* Estilo base de cada mesa */
+/* --- LOGÍSTICA BASE DE LA PÁGINA --- */
+.mesas-body {
+    background-color: var(--lajama-cream);
+    min-height: 100vh;
+}
+
+.main-content {
+    background-color: var(--lajama-cream);
+}
+
+/* --- BANNER INFORMATIVO INICIAL --- */
+.recaudacion-banner {
+    background-color: var(--lajama-green);
+    border-left: 10px solid var(--lajama-skin);
+    color: var(--lajama-white);
+}
+
+/* Contenedor de la leyenda de estados */
+.Leyenda-container {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge-legend {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    letter-spacing: 0.5px;
+}
+
+.bg-disponible { background-color: #22c55e; color: var(--lajama-white); }
+.bg-cocina     { background-color: #ef4444; color: var(--lajama-white); }
+.bg-recoger    { background-color: #f59e0b; color: var(--lajama-white); }
+.bg-pagar      { background-color: #f8fafc; color: var(--lajama-green); border: 1px solid var(--lajama-peach); }
+
+/* --- CONTENEDOR PRINCIPAL DEL SALÓN --- */
+.card-tabla {
+    border: 2px solid var(--lajama-peach) !important;
+    background-color: var(--lajama-white);
+}
+
+/* --- GRID AUTOSUSTENTABLE DE MESAS --- */
+.grid-mesas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+/* Estructura Individual de la Caja de Mesa */
 .mesa-box {
-    height: 110px;
-    border-radius: 15px;
-    cursor: pointer;
+    border-radius: 16px;
+    padding: 24px 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    transition: 0.3s;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
 }
 
-/* Estado: DISPONIBLE (Verde) */
-.disponible {
-    background-color: #2ecc71;
-    color: white;
-}
-.disponible:hover {
-    background-color: #27ae60;
-    transform: scale(1.05);
+.mesa-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(27, 58, 44, 0.15) !important;
 }
 
-/* Estado: OCUPADA (Rojo) */
-.ocupada {
-    background-color: #e74c3c;
-    color: white;
-    animation: pulse 2s infinite;
-}
-.ocupada:hover {
-    background-color: #c0392b;
-    transform: scale(1.05);
+/* Contenedor del ícono dinámico */
+.mesa-icon-wrapper {
+    font-size: 2.4rem;
+    margin-bottom: 8px;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ESTADO ESPECIAL: COMIDA LISTA (Amarillo - Notificado por WebSocket) */
-.lista-para-recoger {
-    background-color: #f1c40f !important;
-    color: #000 !important;
-    animation: blink-warning 1s infinite !important;
-    border: 3px solid #000 !important;
+.mesa-box:hover .mesa-icon-wrapper {
+    transform: scale(1.15);
 }
 
-/* Animación de pulso para mesas ocupadas */
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+.mesa-numero {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
 }
 
-/* Animación de parpadeo para pedidos listos */
-@keyframes blink-warning {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
+/* --- ESTADOS CROMÁTICOS DINÁMICOS DE MESA (Alto Contraste) --- */
+
+/* 1. DISPONIBLE / LIBRE (Verde) */
+.mesa-box.disponible {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.mesa-box.disponible:hover { background-color: #dcfce7; border-color: #86efac; }
+
+/* 2. OCUPADA / EN COCINA (Rojo) */
+.mesa-box.ocupada {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+.mesa-box.ocupada:hover { background-color: #fee2e2; border-color: #fca5a5; }
+
+/* 3. LISTA PARA RECOGER (Amarillo con Alerta Animada) */
+.mesa-box.lista-para-recoger {
+    background-color: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+    animation: pulsoAlertaMesa 2s infinite ease-in-out;
+}
+.mesa-box.lista-para-recoger:hover { background-color: #fef3c7; border-color: #fcd34d; }
+
+/* 4. LISTO PARA PAGAR / CUENTA PEDIDA (Blanco / Crema) */
+.mesa-box.lista-para-pagar {
+    background-color: var(--lajama-white);
+    border-color: var(--lajama-skin);
+    color: var(--lajama-green);
+}
+.mesa-box.lista-para-pagar:hover { background-color: var(--lajama-cream); }
+
+
+/* --- ESTILOS DE COMPONENTES MODAL --- */
+.modal-content {
+    background-color: var(--lajama-white);
+    border: 2px solid var(--lajama-peach);
 }
 
-/* VERDE: Mesa libre */
-.disponible {
-    background-color: #2ecc71 !important;
-    color: white !important;
+.modal-header {
+    background-color: var(--lajama-green) !important;
+    border-bottom: none;
 }
 
-/* ROJO: En cocina / Esperando platos */
-.ocupada {
-    background-color: #e74c3c !important;
-    color: white !important;
+/* Botones de acción dentro del modal */
+.btn-action-jama {
+    background-color: var(--lajama-green);
+    color: var(--lajama-white);
+    border: none;
+    font-weight: 600;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
-/* AMARILLO: Cocina terminó (Falta confirmar) */
-.lista-para-recoger {
-    background-color: #f1c40f !important;
-    color: black !important;
+.btn-action-jama:hover {
+    background-color: #0d231a;
+    color: var(--lajama-white);
 }
 
-/* BLANCO: Todo conforme (Listo para pagar) */
-.lista-para-pagar {
-    background-color: #ffffff !important;
-    color: #333333 !important;
-    border: 3px solid #7f8c8d !important;
+.btn-action-jama:active {
+    transform: scale(0.98);
+}
+
+
+/* --- TABLA DE PRECUENTA INTERNA --- */
+#tablaPrecuenta {
+    border: 1px solid var(--lajama-cream);
+}
+
+#tablaPrecuenta thead th {
+    background-color: var(--lajama-green);
+    color: var(--lajama-white);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    border: none;
+}
+
+#tablaPrecuenta tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+#tablaPrecuenta tbody tr:hover {
+    background-color: var(--lajama-cream);
+}
+
+/* Botón Confirmar Pago Final */
+.btn-confirm-pay {
+    background-color: #166534;
+    color: var(--lajama-white);
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-confirm-pay:hover {
+    background-color: #14532d;
+}
+
+.btn-confirm-pay:active {
+    transform: scale(0.98);
+}
+
+
+/* --- ANIMACIÓN INTERACTIVA DE PULSO (Mesa en Alerta) --- */
+@keyframes pulsoAlertaMesa {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
 }

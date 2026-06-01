@@ -1,11 +1,26 @@
-const modalProducto = new bootstrap.Modal(document.getElementById('modalProducto'));
+let modalProductoInstance = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const modalEl = document.getElementById('modalProducto');
+    if (modalEl) {
+        modalProductoInstance = new bootstrap.Modal(modalEl);
+    }
+
+    // Interceptamos el formulario multi-part para controlar la subida de imágenes
+    const form = document.getElementById('formProducto');
+    if (form) {
+        form.addEventListener('submit', function() {
+            AppUtils.showLoading(true); // Bloqueo mientras procesa el flujo binario en Spring
+        });
+    }
+});
 
 function abrirModalNuevo() {
-    document.getElementById('formProducto').reset();
+    AppUtils.clearForm('#formProducto');
     document.getElementById('prodId').value = '';
     document.getElementById('modalTitulo').innerText = 'Nuevo Producto';
     document.getElementById('imgPrevia').src = '/img/no-photo.png';
-    modalProducto.show();
+    if (modalProductoInstance) modalProductoInstance.show();
 }
 
 function previewImage(event) {
@@ -19,13 +34,17 @@ function previewImage(event) {
 }
 
 function editarProducto(id) {
-    console.log("Editando producto:", id);
+    AppUtils.showLoading(true);
+
     fetch(`/admin/productos/api/${id}`)
         .then(res => {
-            if (!res.ok) throw new Error("Error al obtener datos");
+            AppUtils.showLoading(false);
+            if (!res.ok) throw new Error("Error de comunicación remota");
             return res.json();
         })
         .then(p => {
+            AppUtils.clearForm('#formProducto');
+
             document.getElementById('prodId').value = p.id;
             document.getElementById('prodNombre').value = p.nombre;
             document.getElementById('prodDesc').value = p.descripcion || '';
@@ -40,27 +59,30 @@ function editarProducto(id) {
             img.src = p.imagen ? `/imagenes/${p.imagen}` : '/img/no-photo.png';
 
             document.getElementById('modalTitulo').innerText = 'Editar Producto';
-            modalProducto.show();
+            if (modalProductoInstance) modalProductoInstance.show();
         })
         .catch(err => {
+            AppUtils.showLoading(false);
             console.error(err);
-            Swal.fire('Error', 'No se pudo cargar el producto', 'error');
+            AppUtils.showNotification('No se pudo cargar el plato seleccionado', 'error');
         });
 }
 
-
-
-
-
 function cambiarEstado(id, checkbox) {
     const nuevoEstado = checkbox.checked ? 1 : 0;
+
     fetch(`/admin/productos/estado/${id}?estado=${nuevoEstado}`, {
         method: 'POST'
     }).then(res => {
-        if (!res.ok) {
+        if (res.ok) {
+            AppUtils.showNotification('Estado del menú actualizado', 'success');
+        } else {
             checkbox.checked = !checkbox.checked;
-            Swal.fire('Error', 'No se pudo actualizar el estado', 'error');
+            AppUtils.showNotification('No se pudo modificar la disponibilidad', 'error');
         }
+    }).catch(() => {
+        checkbox.checked = !checkbox.checked;
+        AppUtils.showNotification('Fallo de conexión', 'error');
     });
 }
 
@@ -76,18 +98,15 @@ function filtrarTabla() {
 }
 
 function eliminarProducto(id) {
-    Swal.fire({
-        title: '¿Eliminar plato?',
-        text: "Esta acción no se puede deshacer",
+    AppUtils.showConfirmationDialog({
+        title: '¿Remover plato de la carta?',
+        text: "Esta acción dará de baja el producto en el inventario y cartas digitales.",
         icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#1B3A2C',
-        cancelButtonColor: '#933D2D',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = `/admin/productos/eliminar/${id}`;
-        }
+        confirmButtonColor: '#933D2D', // Tonalidad de advertencia institucional
+        confirmButtonText: 'Sí, eliminar'
+    }, function() {
+        AppUtils.showLoading(true);
+        // Redirección controlada tras aprobación con spinner preventivo
+        window.location.href = `/admin/productos/eliminar/${id}`;
     });
 }
