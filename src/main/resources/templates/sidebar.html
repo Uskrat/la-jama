@@ -78,14 +78,6 @@
     </div>
 
     <div class="d-flex gap-2">
-        <!-- Botón dinámico para la vista de Despacho / Rutas -->
-        <button th:if="${titulo == 'Monitor de Rutas'}"
-                class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"
-                style="background-color: var(--lajama-brown); border:none;"
-                onclick="abrirConfirmacion()">
-            Confirmar Despacho <i class="bi bi-send-fill ms-2"></i>
-        </button>
-
         <!-- Botón dinámico para la vista de Usuarios -->
         <button th:if="${titulo == 'Gestión de Usuarios'}"
                 id="btnNuevoRegistro"
