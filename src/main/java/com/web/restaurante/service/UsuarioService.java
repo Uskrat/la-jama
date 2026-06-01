@@ -1,5 +1,7 @@
 package com.web.restaurante.service;
 
+import com.web.restaurante.dto.usuario.UsuarioDTO;
+import com.web.restaurante.mapper.UsuarioMapper;
 import com.web.restaurante.model.Usuario;
 import com.web.restaurante.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final UsuarioMapper usuarioMapper;
 
     
     @Transactional(readOnly = true)
@@ -23,6 +26,11 @@ public class UsuarioService {
         return usuarioRepository.findAllByEstadoNot(2);
     }
 
+    @Transactional(readOnly = true)
+    public List<UsuarioDTO> listarActivos() {
+        return usuarioRepository.findAllByEstadoNot(2)
+                .stream().map(usuarioMapper::toDTO).toList();
+    }
     
     @Transactional (readOnly = true)
     public Optional<Usuario> obtenerPorId(Long id) {
