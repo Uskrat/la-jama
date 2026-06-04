@@ -3,6 +3,7 @@ package com.web.restaurante.controller;
 import com.web.restaurante.dto.mesas.MesaDTO;
 import com.web.restaurante.model.Pedido;
 import com.web.restaurante.service.MesaService;
+import com.web.restaurante.service.PedidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -17,7 +18,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MesaController {
 
-    private final MesaService mesaService; // Inyectamos exclusivamente el servicio
+    private final MesaService mesaService;
+    private final PedidoService pedidoService; // Inyectado para gestionar el estado de los platos
 
     @GetMapping
     public String verPlanoMesas(Model model) {
@@ -54,5 +56,66 @@ public class MesaController {
         }
 
         return ResponseEntity.ok(precuenta);
+    }
+
+    @PostMapping("/desagrupar-grupo/{idMesaPadre}")
+    @ResponseBody
+    public ResponseEntity<String> desagruparGrupoCompleto(@PathVariable Long idMesaPadre) {
+        try {
+            mesaService.desagruparGrupoCompleto(idMesaPadre);
+            return ResponseEntity.ok("Grupo disuelto con éxito");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/comanda/eliminar-item")
+    @ResponseBody
+    public ResponseEntity<String> eliminarItemComanda(@RequestParam Long pedidoId, @RequestParam Long productoId) {
+        try {
+            mesaService.eliminarDetallePedido(pedidoId, productoId);
+            return ResponseEntity.ok("Producto removido correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // =========================================================================
+    // 🔥 NUEVA RUTA PARA LA ENTREGA MICROSCOPICA EN MESA
+    // =========================================================================
+    @PostMapping("/comanda/entregar-item")
+    @ResponseBody
+    public ResponseEntity<String> entregarItemIndividual(@RequestParam Long pedidoId, @RequestParam Long productoId) {
+        try {
+            // Llama a la lógica microscópica que ya implementamos en PedidoService
+            pedidoService.entregarPlatoIndividual(pedidoId, productoId);
+            return ResponseEntity.ok("Plato servido en mesa");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al entregar el plato: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/desvincular/{idMesa}")
+    @ResponseBody
+    public ResponseEntity<String> desvincularMesa(@PathVariable Long idMesa) {
+        try {
+            mesaService.desvincularMesa(idMesa);
+            return ResponseEntity.ok("Mesa liberada");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/unificar")
+    @ResponseBody
+    public ResponseEntity<String> unificarMesas(
+            @RequestParam Long idMesaPrincipal,
+            @RequestParam List<Long> idsMesasHijas) {
+        try {
+            mesaService.unificarMesas(idMesaPrincipal, idsMesasHijas);
+            return ResponseEntity.ok("Mesas unificadas con éxito");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al unificar: " + e.getMessage());
+        }
     }
 }

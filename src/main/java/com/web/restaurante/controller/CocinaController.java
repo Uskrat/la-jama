@@ -85,15 +85,33 @@ public class CocinaController {
     @PostMapping("/completar")
     public String completarPedido(@RequestParam Long pedidoId, @RequestParam String tipoEstacion) {
         System.out.println("DEBUG: Completando estación " + tipoEstacion + " para pedido ID: " + pedidoId);
-
         pedidoService.completarEstacion(pedidoId, tipoEstacion);
 
         Pedido p = pedidoService.obtenerPorId(pedidoId);
-        String identificadorMesa = (p != null) ? p.getCliente() : String.valueOf(pedidoId);
+        String identificadorMesa = (p != null && p.getNumeroMesa() != null) ? "N° " + p.getNumeroMesa() : String.valueOf(pedidoId);
 
         messagingTemplate.convertAndSend("/topic/notificaciones",
-                "Mesa " + identificadorMesa + " tiene su pedido de " + tipoEstacion + " listo.");
+                "Mesa " + identificadorMesa + " tiene su lote de cocina " + tipoEstacion + " listo.");
 
         return "redirect:/admin/cocina/" + tipoEstacion + "?success";
+    }
+
+    // =========================================================================
+    // 🔥 NUEVO: DESPACHAR ÍTEM INDIVIDUAL POR AJAX DESDE MONITOR DEL CHEF
+    // =========================================================================
+    @PostMapping("/completar-item")
+    @ResponseBody
+    public String completarItemIndividual(@RequestParam Long pedidoId, @RequestParam Long productoId, @RequestParam String tipoEstacion) {
+        System.out.println("DEBUG: Despachando plato individual ID: " + productoId + " de la comanda: " + pedidoId);
+
+        pedidoService.despacharPlatoIndividual(pedidoId, productoId);
+
+        Pedido p = pedidoService.obtenerPorId(pedidoId);
+        String identificadorMesa = (p != null && p.getNumeroMesa() != null) ? "N° " + p.getNumeroMesa() : "Carta/Delivery";
+
+        messagingTemplate.convertAndSend("/topic/notificaciones",
+                "Un plato de la Mesa " + identificadorMesa + " está listo en barra.");
+
+        return "OK";
     }
 }
