@@ -2,10 +2,13 @@ let currentMesaId = null;
 let currentMesaNumero = null;
 let currentPedidoId = null;
 let mesaModal = null;
-let precuentaModal = null;
+let facturacionModal = null;
 
 let modoUnificacionActivo = false;
 
+// =======================================================
+// CONEXIÓN WEBSOCKET PARA COCINA
+// =======================================================
 var socket = new SockJS('/ws-restaurante');
 var stompClient = Stomp.over(socket);
 
@@ -17,19 +20,24 @@ stompClient.connect({}, function (frame) {
 });
 
 function mostrarNotificacionCocina(mensaje) {
-    var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audio.play().catch(e => console.log("Sonido bloqueado"));
-
-    AppUtils.showNotification(`📢 AVISO: ${mensaje}`, 'warning');
-    setTimeout(() => { window.location.reload(); }, 2500);
+    if (mensaje.includes("🚨 ALERTA DE MERMA")) {
+        var audioAlarma = new Audio('https://assets.mixkit.co/active_storage/sfx/995/995-preview.mp3');
+        audioAlarma.play().catch(e => console.log("Sonido bloqueado"));
+        AppUtils.showNotification(mensaje, 'error');
+    } else {
+        var audioNormal = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audioNormal.play().catch(e => console.log("Sonido bloqueado"));
+        AppUtils.showNotification(`📢 AVISO: ${mensaje}`, 'warning');
+        setTimeout(() => { window.location.reload(); }, 2500);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const modalElement = document.getElementById('modalMesa');
     if (modalElement) mesaModal = new bootstrap.Modal(modalElement);
 
-    const precuentaElement = document.getElementById('modalPrecuenta');
-    if (precuentaElement) precuentaModal = new bootstrap.Modal(precuentaElement);
+    const facturacionElement = document.getElementById('modalFacturacion');
+    if (facturacionElement) facturacionModal = new bootstrap.Modal(facturacionElement);
 
     const triggerTabList = document.querySelectorAll('#pills-tab button')
     triggerTabList.forEach(triggerEl => {
@@ -40,6 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
     })
 });
 
+// =======================================================
+// GESTIÓN DEL PLANO DE MESAS (CLICS)
+// =======================================================
 function gestionarClickMesa(elemento) {
     if (modoUnificacionActivo) {
         const checkbox = elemento.querySelector('.check-salon-unir');
@@ -94,12 +105,14 @@ function prepararGestion(elemento) {
     btnDesocupar.classList.add('disabled');
     if (btnUnificar) btnUnificar.classList.remove('d-none');
     if (btnAgregar) btnAgregar.classList.remove('d-none');
-
     if (contenedorComanda) contenedorComanda.classList.add('d-none');
     if (avisoVacio) avisoVacio.classList.add('d-none');
     if (panelSubtotal) panelSubtotal.classList.add('d-none');
-    if (listaPlatos) listaPlatos.innerHTML = "";
 
+    const badgeTicket = document.getElementById('badge-ticket');
+    if (badgeTicket) badgeTicket.classList.add('d-none');
+
+    if (listaPlatos) listaPlatos.innerHTML = "";
     document.getElementById('lblNumero').innerText = currentMesaNumero;
 
     if (esPadre) {
@@ -147,56 +160,80 @@ function prepararGestion(elemento) {
                 txtSubtotal.innerText = data.montoTotal.toFixed(2);
                 listaPlatos.innerHTML = "";
 
+                const ticketImpreso = data.ticketImpreso === true;
+                if (badgeTicket) badgeTicket.classList.toggle('d-none', !ticketImpreso);
+
                 if (data.detalles.length === 0) {
                     if (avisoVacio) avisoVacio.classList.remove('d-none');
                     return;
                 }
 
                 data.detalles.forEach(d => {
-                                    // Verificamos explícitamente el estado:
-                                    // 1. cocinado=false -> "En cocina" (Rojo)
-                                    // 2. cocinado=true && entregado=false -> "Listo" (Verde - Botón Entregar visible)
-                                    // 3. cocinado=true && entregado=true -> "Entregado" (Gris - Botón oculto)
+                    if (d.canceladoPorCliente) {
+                        listaPlatos.innerHTML += `
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded border" style="background-color: #ffe5e5; border-left: 4px solid #dc3545 !important; opacity: 0.8;">
+                                <div class="d-flex align-items-center gap-2" style="max-width: 50%;">
+                                    <span class="badge bg-danger text-white rounded-pill fw-bold">${d.cantidad}</span>
+                                    <span class="text-danger fw-bold text-decoration-line-through text-truncate" style="max-width: 140px;">${d.producto.nombre}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-danger small fw-bold">S/. ${d.subtotal.toFixed(2)}</span>
+                                    <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.7rem;">MERMA</span>
+                                </div>
+                            </div>`;
+                        return;
+                    }
 
-                                    let badgeColor = 'bg-danger';
-                                    let badgeTexto = 'En cocina';
+                    let badgeColor = 'bg-danger';
+                    let badgeTexto = 'En cocina';
 
-                                    if (d.cocinado && d.entregado) {
-                                        badgeColor = 'bg-secondary';
-                                        badgeTexto = 'Entregado';
-                                    } else if (d.cocinado) {
-                                        badgeColor = 'bg-success';
-                                        badgeTexto = 'Listo';
-                                    }
+                    if (d.cocinado && d.entregado) {
+                        badgeColor = 'bg-secondary';
+                        badgeTexto = 'Entregado';
+                    } else if (d.cocinado) {
+                        badgeColor = 'bg-success';
+                        badgeTexto = 'Listo';
+                    }
 
-                                    // Botón Eliminar: Solo si aún no ha entrado a cocina (cocinado == false)
-                                    let btnEliminarHTML = !d.cocinado ? `
-                                        <button class="btn btn-sm btn-link text-danger p-1 ms-1" title="Eliminar plato" onclick="eliminarItemComanda(${currentPedidoId}, ${d.producto.id}, '${d.producto.nombre}')">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
-                                        </button>` : `<button class="btn btn-sm btn-link text-muted p-1 ms-1" disabled><i class="bi bi-trash3 opacity-50 fs-5"></i></button>`;
+                    let btnEliminarHTML = '';
+                    if (!d.cocinado) {
+                        const esMerma = ticketImpreso ? 'true' : 'false';
+                        const icono = ticketImpreso ? 'bi-exclamation-triangle-fill text-warning' : 'bi-trash3-fill text-danger';
 
-                                    // Botón Entregar: Solo si está cocinado y NO ha sido entregado
-                                    let btnCheckUnitarioHTML = (d.cocinado && !d.entregado) ? `
-                                        <button class="btn btn-sm btn-warning text-dark px-2 py-1 rounded-pill ms-1" onclick="entregarPlatoUnitario(${currentPedidoId}, ${d.producto.id}, '${d.producto.nombre}')" style="font-size: 0.75rem; font-weight:700;">
-                                            <i class="bi bi-check2"></i> Entregar
-                                        </button>` : '';
+                        btnEliminarHTML = `
+                            <button class="btn btn-sm btn-link p-1 ms-1" title="Anular plato" onclick="eliminarItemComanda(${currentPedidoId}, ${d.id}, '${d.producto.nombre}', ${esMerma})">
+                                <i class="bi ${icono} fs-5"></i>
+                            </button>
+                        `;
+                    } else {
+                        btnEliminarHTML = `<button class="btn btn-sm btn-link text-muted p-1 ms-1" disabled><i class="bi bi-trash3 opacity-50 fs-5"></i></button>`;
+                    }
 
-                                    const itemHTML = `
-                                        <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border" style="font-size: 0.9rem; border-left: 4px solid var(--lajama-green) !important;">
-                                            <div class="d-flex align-items-center gap-2" style="max-width: 50%;">
-                                                <span class="badge bg-dark text-white rounded-pill fw-bold">${d.cantidad}</span>
-                                                <span class="text-dark fw-semibold text-truncate" style="max-width: 140px;">${d.producto.nombre}</span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="text-muted small fw-bold">S/. ${d.subtotal.toFixed(2)}</span>
-                                                <span class="badge ${badgeColor} rounded-pill px-2 py-1" style="font-size: 0.7rem;">${badgeTexto}</span>
-                                                ${btnCheckUnitarioHTML}
-                                                ${btnEliminarHTML}
-                                            </div>
-                                        </div>
-                                    `;
-                                    listaPlatos.innerHTML += itemHTML;
-                                });
+                    let btnCheckUnitarioHTML = '';
+                    if (d.cocinado && !d.entregado) {
+                        btnCheckUnitarioHTML = `
+                            <button class="btn btn-sm btn-warning text-dark px-2 py-1 rounded-pill ms-1" onclick="entregarPlatoUnitario(${currentPedidoId}, ${d.id}, '${d.producto.nombre}')" style="font-size: 0.75rem; font-weight:700;">
+                                <i class="bi bi-check2"></i> Entregar
+                            </button>
+                        `;
+                    }
+
+                    const itemHTML = `
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light border" style="font-size: 0.9rem; border-left: 4px solid var(--lajama-green) !important;">
+                            <div class="d-flex align-items-center gap-2" style="max-width: 50%;">
+                                <span class="badge bg-dark text-white rounded-pill fw-bold">${d.cantidad}</span>
+                                <span class="text-dark fw-semibold text-truncate" style="max-width: 140px;">${d.producto.nombre}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted small fw-bold">S/. ${d.subtotal.toFixed(2)}</span>
+                                <span class="badge ${badgeColor} rounded-pill px-2 py-1" style="font-size: 0.7rem;">${badgeTexto}</span>
+                                ${btnCheckUnitarioHTML}
+                                ${btnEliminarHTML}
+                            </div>
+                        </div>
+                    `;
+                    listaPlatos.innerHTML += itemHTML;
+                });
 
                 if (contenedorComanda) contenedorComanda.classList.remove('d-none');
                 if (panelSubtotal) panelSubtotal.classList.remove('d-none');
@@ -215,8 +252,10 @@ function prepararGestion(elemento) {
     if (mesaModal) mesaModal.show();
 }
 
-// NUEVA FUNCIÓN: CONFORMAR ENTREGA POR ITEM INDIVIDUAL
-function entregarPlatoUnitario(pedidoId, productoId, nombreProducto) {
+// =======================================================
+// ACCIONES DE PLATOS (MICROSCÓPICAS)
+// =======================================================
+function entregarPlatoUnitario(pedidoId, detalleId, nombreProducto) {
     AppUtils.showConfirmationDialog({
         title: '¿Confirmar Entrega?',
         text: `¿Confirmas que ya serviste "${nombreProducto}" en la Mesa N° ${currentMesaNumero}?`,
@@ -229,11 +268,12 @@ function entregarPlatoUnitario(pedidoId, productoId, nombreProducto) {
 
         const params = new URLSearchParams();
         params.append("pedidoId", pedidoId);
-        params.append("productoId", productoId);
+        params.append("detalleId", detalleId);
 
         try {
             const res = await fetch('/admin/mesas/comanda/entregar-item', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: params
             });
             AppUtils.showLoading(false);
@@ -246,7 +286,50 @@ function entregarPlatoUnitario(pedidoId, productoId, nombreProducto) {
         } catch (error) {
             AppUtils.showLoading(false);
             console.error(error);
-            AppUtils.showNotification("Sin respuesta del servidor", "error");
+        }
+    });
+}
+
+function eliminarItemComanda(pedidoId, detalleId, nombreProducto, esMerma) {
+    const titulo = esMerma ? '¿Declarar Merma?' : '¿Eliminar de la Comanda?';
+    const texto = esMerma
+        ? `⚠️ El ticket ya se imprimió en cocina. Si anulas "${nombreProducto}" ahora, el cliente igual lo pagará y se alertará al cocinero para detener su preparación.`
+        : `¿Estás seguro de remover "${nombreProducto}" de la orden actual? Se recalculará el total.`;
+    const icono = esMerma ? 'warning' : 'question';
+    const colorBtn = '#dc3545';
+    const textoBtn = esMerma ? 'Sí, anular y alertar' : 'Sí, remover plato';
+
+    AppUtils.showConfirmationDialog({
+        title: titulo,
+        text: texto,
+        icon: icono,
+        confirmButtonColor: colorBtn,
+        confirmButtonText: textoBtn
+    }, async function() {
+        if (mesaModal) mesaModal.hide();
+        AppUtils.showLoading(true);
+
+        const params = new URLSearchParams();
+        params.append("pedidoId", pedidoId);
+        params.append("detalleId", detalleId);
+
+        try {
+            const res = await fetch("/admin/mesas/comanda/eliminar-item", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            });
+            AppUtils.showLoading(false);
+            if (res.ok) {
+                AppUtils.showNotification(esMerma ? "Plato anulado. Alerta enviada a cocina." : "Producto removido con éxito", "success");
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const errorText = await res.text();
+                AppUtils.showNotification(errorText || "Error al anular el producto", "error");
+            }
+        } catch (error) {
+            AppUtils.showLoading(false);
+            console.error(error);
         }
     });
 }
@@ -286,41 +369,9 @@ function marcarComoEntregado() {
     });
 }
 
-function eliminarItemComanda(pedidoId, productoId, nombreProducto) {
-    AppUtils.showConfirmationDialog({
-        title: '¿Eliminar de la Comanda?',
-        text: `¿Estás seguro de remover "${nombreProducto}" de la orden actual? Se recalcularán los importes.`,
-        icon: 'warning',
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Sí, remover plato'
-    }, async function() {
-        if (mesaModal) mesaModal.hide();
-        AppUtils.showLoading(true);
-
-        const params = new URLSearchParams();
-        params.append("pedidoId", pedidoId);
-        params.append("productoId", productoId);
-
-        try {
-            const res = await fetch("/admin/mesas/comanda/eliminar-item", {
-                method: "POST",
-                body: params
-            });
-            AppUtils.showLoading(false);
-            if (res.ok) {
-                AppUtils.showNotification("Producto removido con éxito", "success");
-                setTimeout(() => window.location.reload(), 800);
-            } else {
-                const errorText = await res.text();
-                AppUtils.showNotification(errorText || "Error al eliminar el producto", "error");
-            }
-        } catch (error) {
-            AppUtils.showLoading(false);
-            console.error(error);
-        }
-    });
-}
-
+// =======================================================
+// UNIFICACIÓN DE MESAS
+// =======================================================
 function activarModoSeleccionUnificacion() {
     if (!currentMesaId) return;
     modoUnificacionActivo = true;
@@ -401,10 +452,6 @@ function procesarUnificacionDirecta() {
 }
 
 function procesarDesvincularMesa() {
-    procesarDesvinculacion();
-}
-
-function procesarDesvinculacion() {
     AppUtils.showConfirmationDialog({
         title: '¿Desunificar Mesa?',
         text: `La Mesa #${currentMesaNumero} volverá a estar libre físicamente.`,
@@ -420,76 +467,6 @@ function procesarDesvinculacion() {
             if (res.ok) {
                 AppUtils.showNotification("Mesa desvinculada y libre", "success");
                 setTimeout(() => window.location.reload(), 800);
-            }
-        } catch (error) {
-            AppUtils.showLoading(false);
-            window.location.reload();
-        }
-    });
-}
-
-async function validarDesocupar() {
-    if (!currentMesaNumero) return;
-    let tarjetaMesa = document.querySelector(`.mesa-box[data-numero="${currentMesaNumero}"]`);
-    if (tarjetaMesa) {
-        const pedidoEstadoActual = tarjetaMesa.getAttribute('data-pedido-estado');
-        const estadosNoCobrar = ['EN_COCINA', 'PENDIENTE'];
-        if (estadosNoCobrar.includes(pedidoEstadoActual)) {
-            AppUtils.showNotification(`¡No puedes cobrar la Mesa #${currentMesaNumero}! Aún hay productos en cocina.`, "warning");
-            return;
-        }
-    }
-    if (!currentPedidoId || currentPedidoId === "") {
-        AppUtils.showNotification("Esta cuenta grupal no registra consumos activos.", "warning");
-        return;
-    }
-
-    AppUtils.showLoading(true);
-    try {
-        const res = await fetch('/admin/mesas/precuenta/' + currentMesaNumero);
-        AppUtils.showLoading(false);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        document.getElementById('precuentaNumMesa').innerText = currentMesaNumero;
-        document.getElementById('precuentaTotal').innerText = data.montoTotal.toFixed(2);
-
-        const cuerpoTabla = document.getElementById('tablaPrecuentaCuerpo');
-        cuerpoTabla.innerHTML = '';
-        data.detalles.forEach(d => {
-            const fila = document.createElement('tr');
-            fila.innerHTML = `
-                <td class="p-2">${d.producto.nombre}</td>
-                <td class="text-center fw-bold p-2">${d.cantidad}</td>
-                <td class="text-end p-2">S/. ${d.precioUnitario.toFixed(2)}</td>
-                <td class="text-end fw-bold p-2">S/. ${d.subtotal.toFixed(2)}</td>
-            `;
-            cuerpoTabla.appendChild(fila);
-        });
-
-        if (mesaModal) mesaModal.hide();
-        if (precuentaModal) precuentaModal.show();
-    } catch (error) {
-        AppUtils.showLoading(false);
-    }
-}
-
-function confirmarPagoFinal() {
-    AppUtils.showConfirmationDialog({
-        title: '¿Confirmar Pago y Desocupar?',
-        text: `Se procesará el cierre de comanda definitivo para la Mesa #${currentMesaNumero}.`,
-        icon: 'warning',
-        confirmButtonColor: '#166534',
-        confirmButtonText: 'Sí, facturar y liberar'
-    }, async function() {
-        if (precuentaModal) precuentaModal.hide();
-        AppUtils.showLoading(true);
-        try {
-            const res = await fetch(`/admin/mesero/finalizar-atencion/${currentPedidoId}?mesaId=${currentMesaId}`, { method: 'POST' });
-            AppUtils.showLoading(false);
-            if (res.ok) {
-                AppUtils.showNotification("Mesa liberada correctamente", "success");
-                setTimeout(() => window.location.reload(), 1000);
             }
         } catch (error) {
             AppUtils.showLoading(false);
@@ -521,4 +498,47 @@ function procesarDesfragmentacionGrupo() {
             window.location.reload();
         }
     });
+}
+
+// =======================================================
+// DELEGACIÓN DEL CONTROL A CAJA-MOVIL.JS
+// =======================================================
+async function validarDesocupar() {
+    if (!currentMesaNumero) return;
+
+    let tarjetaMesa = document.querySelector(`.mesa-box[data-numero="${currentMesaNumero}"]`);
+    if (tarjetaMesa) {
+        const pedidoEstadoActual = tarjetaMesa.getAttribute('data-pedido-estado');
+        const estadosNoCobrar = ['EN_COCINA', 'PENDIENTE'];
+        if (estadosNoCobrar.includes(pedidoEstadoActual)) {
+            AppUtils.showNotification(`¡No puedes cobrar la Mesa #${currentMesaNumero}! Aún hay productos en cocina.`, "warning");
+            return;
+        }
+    }
+
+    if (!currentPedidoId || currentPedidoId === "") {
+        AppUtils.showNotification("Esta cuenta grupal no registra consumos activos.", "warning");
+        return;
+    }
+
+    AppUtils.showLoading(true);
+    try {
+        const res = await fetch('/admin/mesas/precuenta/' + currentMesaNumero);
+        AppUtils.showLoading(false);
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        // 🔥 REPARADO: Ya no buscamos 'tablaCobroCuerpo'.
+        // Delegamos la inicialización y el mapeo de platos directamente a caja-movil.js
+        inicializarFlujoCaja(data.montoTotal, currentMesaNumero);
+
+        // Control visual de los Modals de Bootstrap
+        if (mesaModal) mesaModal.hide();
+        if (facturacionModal) facturacionModal.show();
+
+    } catch (error) {
+        AppUtils.showLoading(false);
+        console.error("Error al transferir control al módulo de cobros Multiticket:", error);
+    }
 }

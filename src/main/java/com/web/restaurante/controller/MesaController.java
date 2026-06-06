@@ -23,7 +23,6 @@ public class MesaController {
 
     @GetMapping
     public String verPlanoMesas(Model model) {
-        // El controlador recibe DTOs limpios desde el servicio
         List<MesaDTO> mesasDTO = mesaService.obtenerMesasParaSalon();
         List<Pedido> pedidosActivos = mesaService.obtenerPedidosActivos();
 
@@ -50,11 +49,9 @@ public class MesaController {
     @ResponseBody
     public ResponseEntity<?> obtenerPrecuenta(@PathVariable Integer numeroMesa) {
         Map<String, Object> precuenta = mesaService.generarPrecuenta(numeroMesa);
-
         if (precuenta == null) {
             return ResponseEntity.notFound().build();
         }
-
         return ResponseEntity.ok(precuenta);
     }
 
@@ -69,26 +66,23 @@ public class MesaController {
         }
     }
 
+    // 🔥 CAMBIO: Ahora recibe detalleId en lugar de productoId
     @PostMapping("/comanda/eliminar-item")
     @ResponseBody
-    public ResponseEntity<String> eliminarItemComanda(@RequestParam Long pedidoId, @RequestParam Long productoId) {
+    public ResponseEntity<String> eliminarItemComanda(@RequestParam Long pedidoId, @RequestParam Long detalleId) {
         try {
-            mesaService.eliminarDetallePedido(pedidoId, productoId);
+            mesaService.eliminarDetallePedido(pedidoId, detalleId);
             return ResponseEntity.ok("Producto removido correctamente");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
-    // =========================================================================
-    // 🔥 NUEVA RUTA PARA LA ENTREGA MICROSCOPICA EN MESA
-    // =========================================================================
     @PostMapping("/comanda/entregar-item")
     @ResponseBody
-    public ResponseEntity<String> entregarItemIndividual(@RequestParam Long pedidoId, @RequestParam Long productoId) {
+    public ResponseEntity<String> entregarItemIndividual(@RequestParam Long pedidoId, @RequestParam Long detalleId) {
         try {
-            // Llama a la lógica microscópica que ya implementamos en PedidoService
-            pedidoService.entregarPlatoIndividual(pedidoId, productoId);
+            pedidoService.entregarPlatoIndividual(pedidoId, detalleId);
             return ResponseEntity.ok("Plato servido en mesa");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error al entregar el plato: " + e.getMessage());

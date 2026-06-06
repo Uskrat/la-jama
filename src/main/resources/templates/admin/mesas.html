@@ -7,6 +7,7 @@
 
     <th:block th:replace="~{links :: headLinks}"></th:block>
     <link rel="stylesheet" th:href="@{/css/mesas.css}">
+    <link rel="stylesheet" th:href="@{/css/caja-movil.css}">
 </head>
 <body class="mesas-body">
 <div class="wrapper d-flex">
@@ -74,8 +75,8 @@
                                      th:class="'mesa-box shadow-sm ' +
                                       (${m.estado == 'UNIFICADA' || (m.numerosMesasHijas != null && !m.numerosMesasHijas.isEmpty())} ? 'unificada' :
                                       (${pedidoMesa == null} ? 'disponible' :
-                                        (${pedidoMesa.estado.name() == 'ASIGNADO'} ? 'lista-para-pagar' :
-                                        (${pedidoMesa.isListoParaServir()} ? 'lista-para-recoger' : 'ocupada'))))"
+                                        (${pedidoMesa.tienePlatosMicroParaRecoger()} ? 'lista-para-recoger' :
+                                        (${pedidoMesa.tienePlatosMicroEnCocina()} ? 'ocupada' : 'lista-para-pagar'))))"
 
                                      th:data-id="${m.id}"
                                      th:data-numero="${m.numero}"
@@ -91,8 +92,9 @@
 
                                     <div class="mesa-icon-wrapper">
                                         <i th:class="${m.estado == 'UNIFICADA' || (m.numerosMesasHijas != null && !m.numerosMesasHijas.isEmpty())} ? 'bi bi-link-45deg' :
-                                                     (${pedidoMesa != null && pedidoMesa.estado.name() == 'ASIGNADO'} ? 'bi bi-person-check-fill' :
-                                                     (${pedidoMesa != null && pedidoMesa.isListoParaServir()} ? 'bi bi-bell-fill' : 'bi bi-cup-hot-fill'))"></i>
+                                                     (${pedidoMesa != null && pedidoMesa.tienePlatosMicroParaRecoger()} ? 'bi bi-bell-fill' :
+                                                     (${pedidoMesa != null && pedidoMesa.tienePlatosMicroEnCocina()} ? 'bi bi-cup-hot-fill' :
+                                                     (${pedidoMesa != null} ? 'bi bi-person-check-fill' : 'bi bi-cup-hot-fill')))"></i>
                                     </div>
                                     <span class="mesa-numero">Mesa #[[${m.numero}]]</span>
                                 </div>
@@ -116,8 +118,8 @@
 
                                  class="card border-0 shadow-sm rounded-4 tarjeta-unificada"
                                  th:classappend="${pedidoPadreActivo == null} ? 'disponible' :
-                                                (${pedidoPadreActivo.estado.name() == 'ASIGNADO'} ? 'lista-para-pagar' :
-                                                (${pedidoPadreActivo.isListoParaServir()} ? 'lista-para-recoger' : 'ocupada'))"
+                                                (${pedidoPadreActivo.tienePlatosMicroParaRecoger()} ? 'lista-para-recoger' :
+                                                (${pedidoPadreActivo.tienePlatosMicroEnCocina()} ? 'ocupada' : 'lista-para-pagar'))"
 
                                  th:data-id="${mPadre.id}"
                                  th:data-numero="${mPadre.numero}"
@@ -127,8 +129,8 @@
                                 <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 55px; height: 55px; background-color: var(--lajama-green);">
-                                            <i th:class="${pedidoPadreActivo != null && pedidoPadreActivo.estado.name() == 'ASIGNADO'} ? 'bi bi-person-check-fill fs-4' :
-                                                         (${pedidoPadreActivo != null && pedidoPadreActivo.isListoParaServir()} ? 'bi bi-bell-fill fs-4' : 'bi bi-diagram-3-fill fs-4')"></i>
+                                            <i th:class="${pedidoPadreActivo != null && pedidoPadreActivo.tienePlatosMicroParaRecoger()} ? 'bi bi-bell-fill fs-4' :
+                                                         (${pedidoPadreActivo != null && pedidoPadreActivo.tienePlatosMicroEnCocina()} ? 'bi bi-cup-hot-fill fs-4' : 'bi bi-person-check-fill fs-4')"></i>
                                         </div>
                                         <div>
                                             <h5 class="fw-bold mb-1">Mesa Controladora #[[${mPadre.numero}]]</h5>
@@ -137,7 +139,7 @@
                                             </p>
                                         </div>
                                     </div>
-                                    <div class="badge bg-pagar px-4 py-3 border rounded-pill text-uppercase shadow-sm fw-bold">
+                                    <div class="badge-accion-grupo fw-bold shadow-sm">
                                         <i class="bi bi-box-arrow-in-up-right me-1"></i> Administrar Comanda Colectiva
                                     </div>
                                 </div>
@@ -155,7 +157,10 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-gear-fill me-2"></i>Gestión Operativa — Mesa #<span id="lblNumero"></span></h5>
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-gear-fill me-2"></i>Gestión Operativa — Mesa #<span id="lblNumero"></span>
+                    <span id="badge-ticket" class="badge bg-warning text-dark ms-3 d-none border border-dark"><i class="bi bi-printer-fill me-1"></i>En Producción</span>
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
@@ -164,7 +169,6 @@
                 </p>
 
                 <div class="row g-4">
-                    <!-- COLUMNA IZQUIERDA: BOTONES DE ACCIÓN -->
                     <div class="col-md-5 border-end pe-md-4">
                         <h6 class="fw-bold text-secondary mb-3 text-uppercase small tracking-wider">Acciones Disponibles</h6>
                         <div class="d-flex flex-column gap-2">
@@ -194,7 +198,6 @@
                         </div>
                     </div>
 
-                    <!-- COLUMNA DERECHA: PANEL DE COMANDA EDITABLE -->
                     <div class="col-md-7 ps-md-4 d-flex flex-column justify-content-between">
                         <div>
                             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-receipt-cutoff me-2" style="color: var(--lajama-green);"></i>Detalle de Comanda Activa</h6>
@@ -224,44 +227,12 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalPrecuenta" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header text-white text-center">
-                <h5 class="modal-title w-100 fw-bold">🧾 Precuenta — Mesa #<span id="precuentaNumMesa"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <p class="text-muted small text-center mb-3">Revisa el consumo total antes de liberar la mesa</p>
-                <div class="table-responsive rounded-3 overflow-hidden">
-                    <table class="table table-sm table-hover align-middle mb-0" id="tablaPrecuenta">
-                        <thead>
-                        <tr>
-                            <th class="p-3">Producto</th>
-                            <th class="text-center p-3">Cant.</th>
-                            <th class="text-end p-3">Precio</th>
-                            <th class="text-end p-3">Subtotal</th>
-                        </tr>
-                        </thead>
-                        <tbody id="tablaPrecuentaCuerpo"></tbody>
-                    </table>
-                </div>
-                <hr class="my-4" style="border-top: 2px dashed var(--lajama-peach);">
-                <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-                    <span class="fs-5 fw-bold text-secondary">TOTAL A PAGAR:</span>
-                    <span class="fs-3 fw-black text-jama-green">S/. <span id="precuentaTotal" class="fw-bold">0.00</span></span>
-                </div>
-                <button type="button" class="btn btn-success btn-confirm-pay w-100 py-3 fw-bold fs-5 shadow-sm rounded-pill" onclick="confirmarPagoFinal()">
-                    <i class="bi bi-cash-coin me-2"></i> Confirmar Pago y Desocupar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
+<th:block th:replace="~{pago/modal-cobro :: modalCobro}"></th:block>
 <th:block th:replace="~{links :: scriptLinksPlus}"></th:block>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
 <script th:src="@{/js/mesas.js}"></script>
+<script th:src="@{/js/caja-movil.js}"></script>
 </body>
 </html>
