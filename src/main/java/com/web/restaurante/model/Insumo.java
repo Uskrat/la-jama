@@ -19,6 +19,9 @@ public class Insumo {
     @Column(nullable = false)
     private String nombre;
 
+    @Column(nullable = false)
+    private String categoria;
+
     private String unidadMedida;
 
     private Double stockActual;

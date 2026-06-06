@@ -7,6 +7,17 @@
 
     <link rel="stylesheet" th:href="@{/css/cocina-core.css}">
     <link rel="stylesheet" th:href="@{/css/cocina-caliente.css}">
+
+    <style>
+        .btn-alerta-ticket {
+            animation: latido-rojo 1.5s infinite;
+        }
+        @keyframes latido-rojo {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+    </style>
 </head>
 <body class="cocina-body cocina-caliente">
 
@@ -50,27 +61,62 @@
                     </div>
 
                     <div class="items-lista">
-                        <div class="item-plato" th:each="d : ${p.getListaDetalles()}"
-                             th:if="${d.producto != null && d.producto.categoria != null && #strings.contains(#strings.toUpperCase(d.producto.categoria.nombre), 'CALIENTE') && !d.cocinado}">
-                            <div class="d-flex align-items-center">
-                                <span class="item-cantidad" th:text="${d.cantidad}">1</span>
-                                <span class="item-nombre" th:text="${d.producto.nombre}">Plato Caliente</span>
+                        <div class="item-plato p-2 mb-1 rounded animate__animated animate__fadeIn"
+                             th:each="d : ${p.getListaDetalles()}"
+                             th:if="${d.producto != null && d.producto.categoria != null && #strings.contains(#strings.toUpperCase(d.producto.categoria.nombre), 'CALIENTE') && !d.cocinado}"
+                             th:style="${d.canceladoPorCliente} ? 'background-color: #ffe5e5; border-left: 5px solid #dc3545 !important; opacity: 0.85;' : (!d.impresoEnCocina ? 'background-color: rgba(255, 193, 7, 0.15); border-left: 3px solid #ffc107;' : 'border-left: 3px solid transparent;')">
+
+                            <div class="d-flex align-items-center justify-content-between w-100">
+                                <div class="d-flex align-items-center">
+                                    <span class="item-cantidad" th:classappend="${d.canceladoPorCliente} ? 'bg-danger text-white' : ''" th:text="${d.cantidad}">1</span>
+
+                                    <span class="item-nombre fw-bold"
+                                          th:classappend="${d.canceladoPorCliente} ? 'text-danger text-decoration-line-through' : 'text-dark'"
+                                          th:text="${d.producto.nombre}">Plato Caliente</span>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+    <span th:if="${!d.impresoEnCocina && !d.canceladoPorCliente}"
+          class="badge bg-warning text-dark shadow-sm animate__animated animate__pulse animate__infinite">
+        <i class="bi bi-star-fill me-1"></i>NUEVO
+    </span>
+
+                                    <span th:if="${d.canceladoPorCliente}"
+                                          class="badge bg-danger text-white shadow-sm fw-bold px-2 py-1">
+        <i class="bi bi-exclamation-octagon-fill me-1"></i>MERMA
+    </span>
+
+                                    <button th:if="${!d.canceladoPorCliente && d.impresoEnCocina}"
+                                            type="button"
+                                            class="btn btn-sm btn-outline-success"
+                                            th:onclick="despacharItemCocina([[${p.id}]], [[${d.id}]], '[[${d.producto.nombre}]]')"
+                                            title="Despachar este plato a barra"
+                                            style="padding: 2px 8px; font-weight: bold;">
+                                        <i class="bi bi-check2-all"></i>
+                                    </button>
+
+                                    <button th:if="${!d.canceladoPorCliente && !d.impresoEnCocina}"
+                                            type="button"
+                                            class="btn btn-sm btn-light border text-muted opacity-50"
+                                            disabled
+                                            title="¡Acción bloqueada! Primero debes imprimir el ticket físico para habilitar el despacho."
+                                            style="padding: 2px 8px; cursor: not-allowed;">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card-footer">
-                    <div class="footer-actions">
-                        <a th:href="@{'/admin/cocina/ticket/' + ${p.id} + '/caliente'}" target="_blank" class="btn-printer">
-                            <i class="bi bi-printer"></i>
+                <div class="card-footer" th:with="nuevosCalientes=${p.getListaDetalles().?[!canceladoPorCliente && !impresoEnCocina && producto != null && producto.categoria != null && producto.categoria.nombre.toUpperCase().contains('CALIENTE')]}">
+                    <div class="footer-actions d-flex gap-2 w-100">
+
+                        <a th:href="@{'/admin/cocina/ticket/' + ${p.id} + '/caliente'}" target="_blank"
+                           class="btn w-100 fw-bold d-flex align-items-center justify-content-center"
+                           th:classappend="${#lists.isEmpty(nuevosCalientes)} ? 'btn-secondary' : 'btn-danger btn-alerta-ticket'">
+                            <i class="bi bi-printer me-2"></i> [[${#lists.isEmpty(nuevosCalientes)} ? 'Reimprimir' : 'Imprimir Ticket']]
                         </a>
-                        <!-- Agregamos la clase 'form-despachar' para controlarlo con AppUtils -->
-                        <form th:action="@{/admin/cocina/completar}" method="post" class="form-despachar w-100 m-0">
-                            <input type="hidden" name="pedidoId" th:value="${p.id}">
-                            <input type="hidden" name="tipoEstacion" value="caliente">
-                            <button type="submit" class="btn-despachar">DESPACHAR PLATO</button>
-                        </form>
                     </div>
                 </div>
             </div>
@@ -79,6 +125,8 @@
 </div>
 
 <th:block th:replace="~{links :: scriptLinksPlus}"></th:block>
-<script th:src="@{/js/cocina-caliente.js}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script th:src="@{/js/cocina-caliente.js}" defer></script>
 </body>
 </html>

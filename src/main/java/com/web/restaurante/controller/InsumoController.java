@@ -2,7 +2,9 @@ package com.web.restaurante.controller;
 
 import com.web.restaurante.dto.InsumoDTO;
 import com.web.restaurante.dto.InsumoProductoDTO;
+import com.web.restaurante.model.MovimientoInsumo;
 import com.web.restaurante.repository.ProductoRepository;
+import com.web.restaurante.repository.MovimientoRepository;
 import com.web.restaurante.service.InsumoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -19,6 +21,7 @@ public class InsumoController {
 
     private final InsumoService insumoService;
     private final ProductoRepository productoRepository;
+    private final MovimientoRepository movimientoRepository;
 
     @GetMapping
     public String listarInsumos(Model model) {
@@ -65,5 +68,11 @@ public class InsumoController {
     public String eliminarInsumoDeReceta(@PathVariable Long id) {
         insumoService.eliminarInsumoDeReceta(id);
         return "redirect:/insumos";
+    }
+
+    @GetMapping("/kardex/{id}")
+    @ResponseBody
+    public List<MovimientoInsumo> obtenerKardex(@PathVariable Long id) {
+        return movimientoRepository.findByInsumoIdOrderByFechaDesc(id);
     }
 }

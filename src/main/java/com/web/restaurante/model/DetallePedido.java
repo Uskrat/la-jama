@@ -30,8 +30,15 @@ public class DetallePedido {
     private Producto producto;
 
     private boolean cocinado = false;
+<<<<<<< Updated upstream
+=======
+    private boolean entregado = false; // Indica si el mozo ya lo dejó en la mesa del cliente
+    private boolean canceladoPorCliente = false;
+    private boolean impresoEnCocina = false;
+>>>>>>> Stashed changes
 
     private Integer cantidad;
     private Double precioUnitario;
     private Double subtotal;
+
 }

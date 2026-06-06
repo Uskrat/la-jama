@@ -98,7 +98,86 @@ public class PedidoService {
         pedidoRepository.save(pedido);
     }
 
+<<<<<<< Updated upstream
     
+=======
+    // =========================================================================
+    // 🔥 CONTROL MICROSCOPIO: DESPACHAR PLATO INDIVIDUAL EN COCINA
+    // =========================================================================
+    @Transactional
+    public void despacharPlatoIndividual(Long pedidoId, Long detalleId) {
+        Pedido p = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        if (p.getListaDetalles() == null) return;
+
+        // 🔥 BÚSQUEDA EXACTA: Apuntamos directo al ID de la fila (El Mondonguito específico)
+        DetallePedido detalleTarget = p.getListaDetalles().stream()
+                .filter(d -> d.getId().equals(detalleId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Fila de detalle no encontrada"));
+
+        // 🚨 CANDADO OPERATIVO INDESTRUCTIBLE: Aborta si el plato no se ha mandado a la tiquetera física
+        if (!detalleTarget.isImpresoEnCocina()) {
+            throw new IllegalStateException("¡Bloqueado! No puedes despachar '"
+                    + detalleTarget.getProducto().getNombre() + "' porque aún no ha sido impreso en el ticket.");
+        }
+
+        if (!detalleTarget.isCocinado()) {
+            detalleTarget.setCocinado(true);
+            insumoService.descontarInsumosPorPedido(detalleTarget.getProducto().getId(), detalleTarget.getCantidad());
+        }
+
+        // LÓGICA DE SEMÁFORO GLOBAL RECALCULADA:
+        boolean tieneFrioPendiente = p.getListaDetalles().stream()
+                .anyMatch(d -> !d.isCocinado() && (d.getProducto().getCategoria().getNombre().toUpperCase().contains("FRI")
+                        || d.getProducto().getCategoria().getNombre().toUpperCase().contains("FRÍ")));
+
+        boolean tieneCalientePendiente = p.getListaDetalles().stream()
+                .anyMatch(d -> !d.isCocinado() && d.getProducto().getCategoria().getNombre().toUpperCase().contains("CALIENTE"));
+
+        p.setFrioListo(!tieneFrioPendiente);
+        p.setCalienteListo(!tieneCalientePendiente);
+
+        if (!tieneFrioPendiente && !tieneCalientePendiente) {
+            p.setEstado(EstadoPedido.PREPARADO);
+        }
+
+        pedidoRepository.save(p);
+    }
+
+    // =========================================================================
+    // 🔥 CONTROL MICROSCOPIO: ENTREGAR PLATO INDIVIDUAL EN MESA
+    // =========================================================================
+    @Transactional
+    public void entregarPlatoIndividual(Long pedidoId, Long detalleId) { // 💡 Cambiado de productoId a detalleId
+        Pedido p = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        if (p.getListaDetalles() == null) return;
+
+        // 💡 SOLUCIÓN: Buscamos usando d.getId() (ID de la fila 67) igual que en cocina
+        DetallePedido detalleTarget = p.getListaDetalles().stream()
+                .filter(d -> d.getId().equals(detalleId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Plato no mapeado en comanda"));
+
+        // Activamos la bandera de entregado para reflejar el estado en la base de datos
+        detalleTarget.setEntregado(true);
+
+        System.out.println("DEBUG SALÓN -> Entregado conforme en mesa: " + detalleTarget.getProducto().getNombre());
+
+        // Tu lógica original de semáforo global para el lote mantenida intacta:
+        boolean todosEntregados = p.getListaDetalles().stream().allMatch(DetallePedido::isCocinado);
+        if (todosEntregados) {
+            p.setEstado(EstadoPedido.ASIGNADO);
+        }
+
+        pedidoRepository.save(p);
+    }
+
+    // --- FLUJOS DE LOGÍSTICA DE TRASLADO MANTENIDOS INTEGRALMENTE ---
+>>>>>>> Stashed changes
     public List<Pedido> optimizarTrayectoBurbuja(List<Pedido> pedidos) {
         int n = pedidos.size();
         for (int i = 0; i < n - 1; i++) {
@@ -287,4 +366,52 @@ public class PedidoService {
                 })
                 .collect(Collectors.toList());
     }
+<<<<<<< Updated upstream
 }
+=======
+
+    @Transactional
+    public void eliminarItemComanda(Long pedidoId, Long detalleId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con ID: " + pedidoId));
+
+        if (pedido.getListaDetalles() == null) return;
+
+        // Localizamos la fila exacta del plato que se desea remover
+        DetallePedido detalleTarget = pedido.getListaDetalles().stream()
+                .filter(d -> d.getId().equals(detalleId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Línea de comanda no encontrada ID: " + detalleId));
+
+        if (detalleTarget.isImpresoEnCocina()) {
+            // CASO A: El ticket YA se imprimió -> Se vuelve MERMA
+            System.out.println("DEBUG OPERATIVO -> Ítem impreso. Cambiando estado a MERMA.");
+            detalleTarget.setCanceladoPorCliente(true);
+
+        } else {
+            // CASO B: El ticket NO se ha impreso -> ELIMINACIÓN LIMPIA (Remoción física)
+            System.out.println("DEBUG OPERATIVO -> Ítem NO impreso. Borrando por completo de la comanda.");
+
+            // Lo quitamos de la lista. Gracias a orphanRemoval=true, JPA ejecutará el DELETE SQL
+            pedido.getListaDetalles().remove(detalleTarget);
+            detalleTarget.setPedido(null);
+        }
+
+        // En ambos casos recalculamos el monto total usando tu método correcto: setMontoTotal
+        recalcularTotalesPedido(pedido);
+
+        pedidoRepository.save(pedido);
+    }
+
+    private void recalcularTotalesPedido(Pedido pedido) {
+        // Sumamos solo los platos activos (que NO son merma ni cancelación)
+        double nuevoTotal = pedido.getListaDetalles().stream()
+                .filter(d -> !d.isCanceladoPorCliente())
+                .mapToDouble(d -> d.getPrecioUnitario() * d.getCantidad())
+                .sum();
+
+        // Seteamos el valor usando tu atributo real mapeado en la entidad
+        pedido.setMontoTotal(nuevoTotal);
+    }
+}
+>>>>>>> Stashed changes

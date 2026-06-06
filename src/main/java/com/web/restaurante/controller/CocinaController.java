@@ -75,9 +75,35 @@ public class CocinaController {
     @GetMapping("/ticket/{pedidoId}/{tipo}")
     public String verTicketPDF(@PathVariable Long pedidoId, @PathVariable String tipo, Model model) {
         Pedido pedido = pedidoService.obtenerPorId(pedidoId);
-        List<DetallePedido> detallesFiltrados = pedidoService.obtenerDetallesPorTipo(pedidoId, tipo);
+
+        // 1. Filtramos SOLO los platos que NO se han impreso, que NO son mermas y que son de esta estación
+        List<DetallePedido> detallesAImprimir = pedido.getListaDetalles().stream()
+                .filter(d -> !d.isCanceladoPorCliente() && !d.isImpresoEnCocina())
+                .filter(d -> {
+                    String nombreCat = d.getProducto().getCategoria().getNombre().toUpperCase();
+                    if ("caliente".equalsIgnoreCase(tipo)) return nombreCat.contains("CALIENTE");
+                    else return nombreCat.contains("FRI") || nombreCat.contains("FRÍ");
+                })
+                .toList();
+
+        // 2. Si no hay nada nuevo (el chef le dio a reimprimir por si acaso), le mandamos todos los activos
+        if (detallesAImprimir.isEmpty()) {
+            detallesAImprimir = pedido.getListaDetalles().stream()
+                    .filter(d -> !d.isCanceladoPorCliente())
+                    .filter(d -> {
+                        String cat = d.getProducto().getCategoria().getNombre().toUpperCase();
+                        return "caliente".equalsIgnoreCase(tipo) ? cat.contains("CALIENTE") : (cat.contains("FRI") || cat.contains("FRÍ"));
+                    }).toList();
+        } else {
+            // 3. Si SÍ había platos nuevos, los marcamos como impresos para que nunca más vuelvan a salir en un ticket nuevo
+            for (DetallePedido d : detallesAImprimir) {
+                d.setImpresoEnCocina(true);
+            }
+            pedidoService.guardar(pedido); // Guarda los cambios en BD
+        }
+
         model.addAttribute("pedido", pedido);
-        model.addAttribute("detalles", detallesFiltrados);
+        model.addAttribute("detalles", detallesAImprimir);
         model.addAttribute("tipoCocina", tipo.toUpperCase());
         return "admin/cocina/ticket_pdf";
     }
@@ -96,4 +122,25 @@ public class CocinaController {
 
         return "redirect:/admin/cocina/" + tipoEstacion + "?success";
     }
+<<<<<<< Updated upstream
+=======
+
+    // =========================================================================
+    // 🔥 NUEVO: DESPACHAR ÍTEM INDIVIDUAL POR AJAX DESDE MONITOR DEL CHEF
+    // =========================================================================
+    @PostMapping("/completar-item")
+    @ResponseBody
+    public String completarItemIndividual(@RequestParam Long pedidoId, @RequestParam Long detalleId, @RequestParam String tipoEstacion) {
+        System.out.println("DEBUG: Despachando fila exacta ID: " + detalleId + " de la comanda: " + pedidoId);
+        pedidoService.despacharPlatoIndividual(pedidoId, detalleId);
+
+        Pedido p = pedidoService.obtenerPorId(pedidoId);
+        String identificadorMesa = (p != null && p.getNumeroMesa() != null) ? "N° " + p.getNumeroMesa() : "Carta/Delivery";
+
+        messagingTemplate.convertAndSend("/topic/notificaciones",
+                "Un plato de la Mesa " + identificadorMesa + " está listo en barra.");
+
+        return "OK";
+    }
+>>>>>>> Stashed changes
 }
